@@ -1121,6 +1121,16 @@ function updateBadge(){
   if(n>0){b.style.display='';b.textContent=n;}else b.style.display='none';
 }
 
+let _toastTimer;
+function showToast(msg, cls=''){
+  const t=document.getElementById('toast');
+  if(!t) return;
+  document.getElementById('toast-msg').textContent=msg;
+  t.className='toast show'+(cls?' '+cls:'');
+  clearTimeout(_toastTimer);
+  _toastTimer=setTimeout(()=>t.classList.remove('show'),3800);
+}
+
 // ── Submit form ───────────────────────────────────────────────────────────
 function toggleBox(type){
   if(type==='urgent'){
@@ -1425,15 +1435,13 @@ function initGoogleDrive(){
   gTokenClient=google.accounts.oauth2.initTokenClient({
     client_id:cfg.clientId,
     scope:'https://www.googleapis.com/auth/drive.file',
-    callback:onGoogleToken
+    callback:onGoogleToken,
+    error_callback:(e)=>{ if(e.type!=='popup_closed') setDriveStatus(false); }
   });
-  // Silently try to get a token (no popup — uses existing Google session cookie)
-  // If user is already signed into Google this will succeed without any prompt
-  try {
-    gTokenClient.requestAccessToken({prompt:''});
-  } catch(e){
-    // Silent auth failed — user will need to click "Save & sign in" once
-  }
+  // Only attempt silent auth — this will NOT open a popup.
+  // It succeeds silently if the user already granted access in this browser session.
+  // It fails silently if not — user clicks "Save & sign in" once to grant.
+  gTokenClient.requestAccessToken({prompt:'none'});
 }
 
 function requestDriveAccess(cb){
