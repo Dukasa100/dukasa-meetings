@@ -478,6 +478,7 @@ const TEMPLATE = [
 
 let db = null, requests = [], meetingDate = '', realtimeSub = null;
 let urgentOn = false, deferOn = false;
+let deletedPresets = new Set();
 
 const IC = {
   clock:'<svg width="11" height="11" fill="none" viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3.5l2 2"/></svg>',
@@ -539,6 +540,8 @@ async function loadAll(){
     db.from('meeting_settings').select('*')
   ]);
   requests = reqs||[];
+  const dpSetting = (settings||[]).find(s=>s.key==='deleted_presets');
+  if(dpSetting && dpSetting.value) deletedPresets = new Set(JSON.parse(dpSetting.value));
   const ds = (settings||[]).find(s=>s.key==='meeting_date');
   meetingDate = ds ? ds.value : '';
   const di = document.getElementById('meeting-date-input');
@@ -683,16 +686,25 @@ async function approveReq(id){
   if(!db) return;
   setSyncStatus('syncing');
   await db.from('agenda_requests').update({status:'approved',deferred:false}).eq('id',id);
+  const i=requests.findIndex(r=>r.id===id);
+  if(i>-1){requests[i].status='approved';requests[i].deferred=false;}
+  renderAgenda(); renderBoard(); updateBadge(); setSyncStatus('live');
   showToast('Item approved and on agenda.','t-ok');
 }
 async function unapproveReq(id){
   if(!db) return;
   await db.from('agenda_requests').update({status:'pending'}).eq('id',id);
+  const i=requests.findIndex(r=>r.id===id);
+  if(i>-1) requests[i].status='pending';
+  renderAgenda(); renderBoard(); updateBadge();
   showToast('Item removed from agenda.');
 }
 async function promoteDeferred(id){
   if(!db) return;
   await db.from('agenda_requests').update({deferred:false,status:'pending'}).eq('id',id);
+  const i=requests.findIndex(r=>r.id===id);
+  if(i>-1){requests[i].deferred=false;requests[i].status='pending';}
+  renderAgenda(); renderBoard(); updateBadge();
   showToast('Item moved to next meeting requests.','');
 }
 async function addFollowup(id){
@@ -708,10 +720,22 @@ async function addFollowup(id){
   const {error}=await db.from('agenda_requests').insert(row);
   if(!error) showToast('Follow-up item added to agenda.','t-ok');
 }
-async function deleteReq(id){
-  if(!db) return;
+async function deleteReq(id, isPreset){
+  if(!db && !isPreset) return;
   if(!confirm('Delete this item? This cannot be undone.')) return;
+  if(isPreset){
+    // Store deleted preset key in settings so it persists across sessions
+    deletedPresets.add(id);
+    const arr=JSON.stringify([...deletedPresets]);
+    if(db) await db.from('meeting_settings').upsert({key:'deleted_presets',value:arr});
+    else localStorage.setItem('dukasa-deleted-presets',arr);
+    renderAgenda(); renderBoard();
+    showToast('Item removed.');
+    return;
+  }
   await db.from('agenda_requests').delete().eq('id',id);
+  requests=requests.filter(r=>r.id!==id);
+  renderAgenda(); renderBoard(); updateBadge();
   showToast('Item deleted.');
 }
 
@@ -750,18 +774,25 @@ function renderAgenda(){
   } else { db2.className='deferred-banner'; db2.innerHTML=''; }
 
   document.getElementById('agenda-sections').innerHTML=TEMPLATE.map((sec,i)=>{
-    const items=sec.isUrgent?urgA:sec.isSubmitted?stdA:sec.isFollowup?followA:sec.items;
+    const allItems=sec.isUrgent?urgA:sec.isSubmitted?stdA:sec.isFollowup?followA:sec.items;
+    const isDynamic=sec.isUrgent||sec.isSubmitted||sec.isFollowup;
+    // For static sections, filter out any user-deleted preset rows
+    const items = isDynamic ? allItems : allItems.filter((_,idx)=>!deletedPresets.has(sec.num+'-'+idx));
     const tag=sec.isUrgent?`<span class="sec-tag tag-urgent">${IC.alert} Urgent</span>`:
                sec.isSubmitted?`<span class="sec-tag tag-sub">Submitted</span>`:
                sec.isFollowup?`<span class="sec-tag tag-follow">${IC.reply} Follow-ups</span>`:'';
-    const isDynamic=sec.isUrgent||sec.isSubmitted||sec.isFollowup;
     const rows=!items.length
       ?`<div class="empty-row">${sec.isUrgent?'No urgent items':sec.isFollowup?'No follow-up items':sec.isSubmitted?'No approved items yet':'No items'}</div>`
-      :items.map((item,idx)=>{
+      :items.map((item)=>{
           const owner=item.owner||((item.name||'')+(item.dept?` · ${item.dept}`:''));
-          const delBtn=isDynamic&&item.id?`<button class="row-delete-btn" onclick="deleteReq('${item.id}')" title="Remove">${IC.trash}</button>`:'';
+          // For DB items use their id; for preset items use a stable section+originalIndex key
+          const origIdx = isDynamic ? -1 : sec.items.indexOf(item);
+          const presetKey = !isDynamic ? (sec.num+'-'+origIdx) : null;
+          const delBtn = item.id
+            ? `<button class="row-delete-btn" onclick="deleteReq('${item.id}',false)" title="Remove">${IC.trash}</button>`
+            : `<button class="row-delete-btn" onclick="deleteReq('${presetKey}',true)" title="Remove">${IC.trash}</button>`;
           return `<div class="agenda-row">
-            <div class="row-num">${idx+1}</div>
+            <div class="row-num"></div>
             <div class="row-body">
               <div class="row-title-wrap"><span class="row-title">${esc(item.text||item.title)}</span>${delBtn}</div>
               <div class="row-meta">
@@ -852,14 +883,15 @@ function showToast(msg,cls=''){
 }
 
 function exportDocx(){
-  if(typeof docx === 'undefined'){ showToast('Export library not loaded — try refreshing the page.','t-urgent'); return; }
+  const docxLib = window.docx;
+  if(!docxLib){ showToast('Export library not loaded — try refreshing the page.','t-urgent'); return; }
   showToast('Generating document…','t-brand');
-  _buildDocx();
+  setTimeout(_buildDocx, 50);
 }
 
 function _buildDocx(){
   const {Document,Packer,Paragraph,TextRun,Table,TableRow,TableCell,
-    AlignmentType,PageBreak,BorderStyle,WidthType,ShadingType,VerticalAlign}=docx;
+    AlignmentType,PageBreak,BorderStyle,WidthType,ShadingType,VerticalAlign}=window.docx;
   const B='927150',TAN='EDE8E0',DARK='1A1A1A';
   const nb={style:BorderStyle.NONE,size:0,color:'FFFFFF'};
   const nbs={top:nb,bottom:nb,left:nb,right:nb,insideH:nb,insideV:nb};
