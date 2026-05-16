@@ -360,9 +360,13 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
           <svg fill="none" viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.5"><path d="M2 12h12M5 12L2 7h4l1-4 3 4h4l-3 5z"/></svg>
           Save to Drive
         </button>
-        <button class="btn btn-brand" onclick="exportPrint()">
+        <button class="btn btn-ghost" onclick="exportPrint()">
           <svg fill="none" viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.5"><path d="M4 5V2h8v3M3 5h10a1 1 0 011 1v5H2V6a1 1 0 011-1zM4 11v3h8v-3"/></svg>
-          Export / Print
+          Export PDF
+        </button>
+        <button class="btn btn-brand" onclick="exportWord()">
+          <svg fill="none" viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.5"><path d="M9 2H4a1 1 0 00-1 1v10a1 1 0 001 1h8a1 1 0 001-1V6M9 2l4 4M9 2v4h4M5 8l1.5 4L8 9l1.5 3L11 8"/></svg>
+          Export Word
         </button>
       </div>
     </header>
@@ -1190,21 +1194,192 @@ async function submitRequest(){
 }
 
 
-// ── Export / Print ───────────────────────────────────────────────────────────
+// ── Export PDF (print dialog) ────────────────────────────────────────────────
 function exportPrint(){
   showToast('Opening print view…','t-brand');
   const html = buildAgendaPDFHtml();
   const win = window.open('','_blank','width=900,height=700');
-  if(!win){ showToast('Pop-up blocked — please allow pop-ups for this site.','t-urgent'); return; }
-  win.document.write(html);
-  win.document.close();
-  win.focus();
-  // Give fonts time to load before printing
+  if(!win){ showToast('Pop-up blocked — allow pop-ups for this site.','t-urgent'); return; }
+  win.document.write(html); win.document.close(); win.focus();
   setTimeout(()=>win.print(), 1200);
 }
-
-// Legacy alias
 function exportDocx(){ exportPrint(); }
+
+// ── Export Word (.docx) — pure JS, no library dependency ─────────────────────
+function exportWord(){
+  if(window.JSZip){
+    _doExportWord();
+  } else {
+    showToast('Loading export library…','t-brand');
+    const s=document.createElement('script');
+    s.src='https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+    s.onload=()=>{ window.JSZip=JSZip; _doExportWord(); };
+    s.onerror=()=>showToast('Could not load JSZip — check your internet connection.','t-urgent');
+    document.head.appendChild(s);
+  }
+}
+
+function _doExportWord(){
+  try {
+    showToast('Generating Word document…','t-brand');
+
+    // ── XML helpers ────────────────────────────────────────────────────────
+    function xmlEsc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+    function wRun(text, o={}){
+      const rpr=[
+        o.size?`<w:sz w:val="${o.size*2}"/><w:szCs w:val="${o.size*2}"/>`:'',
+        o.bold?'<w:b/><w:bCs/>':'',
+        o.italic?'<w:i/><w:iCs/>':'',
+        o.color?`<w:color w:val="${o.color}"/>`:'',
+        o.font?`<w:rFonts w:ascii="${o.font}" w:hAnsi="${o.font}" w:cs="${o.font}"/>`:'',
+      ].join('');
+      return `<w:r>${rpr?`<w:rPr>${rpr}</w:rPr>`:''}<w:t xml:space="preserve">${xmlEsc(text)}</w:t></w:r>`;
+    }
+
+    function wPara(runs, o={}){
+      const ppr=[
+        o.align?`<w:jc w:val="${o.align}"/>`:'',
+        (o.before||o.after!==undefined)?`<w:spacing w:before="${o.before||0}" w:after="${o.after!==undefined?o.after:160}"/>`:'',
+        o.borderBottom?`<w:pBdr><w:bottom w:val="single" w:sz="6" w:space="1" w:color="D4CFC5"/></w:pBdr>`:'',
+        o.pageBreak?'<w:pageBreakBefore/>':'',
+      ].join('');
+      return `<w:p>${ppr?`<w:pPr>${ppr}</w:pPr>`:''}${runs}</w:p>`;
+    }
+
+    const NOBORDER='<w:top w:val="none" w:sz="0" w:space="0" w:color="auto"/><w:left w:val="none" w:sz="0" w:space="0" w:color="auto"/><w:bottom w:val="none" w:sz="0" w:space="0" w:color="auto"/><w:right w:val="none" w:sz="0" w:space="0" w:color="auto"/>';
+    const CELLMAR='<w:tblCellMar><w:top w:w="100" w:type="dxa"/><w:left w:w="120" w:type="dxa"/><w:bottom w:w="100" w:type="dxa"/><w:right w:w="120" w:type="dxa"/></w:tblCellMar>';
+
+    function wCell(content, width, shade=''){
+      return `<w:tc><w:tcPr><w:tcW w:w="${width}" w:type="dxa"/><w:tcBorders>${NOBORDER}</w:tcBorders>${shade?`<w:shd w:val="clear" w:color="auto" w:fill="${shade}"/>`:''}${CELLMAR}</w:tcPr>${content}</w:tc>`;
+    }
+
+    function wTblBorder(bottomColor='D4CFC5'){
+      return `<w:tblBorders><w:top w:val="none" w:sz="0" w:space="0" w:color="auto"/><w:left w:val="none" w:sz="0" w:space="0" w:color="auto"/><w:bottom w:val="single" w:sz="6" w:space="0" w:color="${bottomColor}"/><w:right w:val="none" w:sz="0" w:space="0" w:color="auto"/><w:insideH w:val="none" w:sz="0" w:space="0" w:color="auto"/><w:insideV w:val="none" w:sz="0" w:space="0" w:color="auto"/></w:tblBorders>`;
+    }
+
+    function wTable(rows, totalWidth=9026, bottomColor='D4CFC5'){
+      return `<w:tbl><w:tblPr><w:tblW w:w="${totalWidth}" w:type="dxa"/>${wTblBorder(bottomColor)}</w:tblPr>${rows}</w:tbl>`;
+    }
+
+    function secHeader(num, title, time){
+      const C1=640, C2=6986, C3=1400;
+      return wTable(`<w:tr>
+        ${wCell(wPara(wRun(String(num).padStart(2,'0'),{font:'Courier New',size:11,bold:true,color:'927150'}),{after:0}),C1,'EDE8E0')}
+        ${wCell(wPara(wRun(title,{size:13,bold:true}),{after:0}),C2,'EDE8E0')}
+        ${wCell(wPara(wRun(time,{font:'Courier New',size:10,color:'927150'}),{align:'right',after:0}),C3,'EDE8E0')}
+      </w:tr>`);
+    }
+
+    function agendaRow(text, owner, cat, desc, timeN){
+      const meta=[
+        owner?wRun(owner,{font:'Courier New',size:9,color:'927150',italic:true}):'',
+        cat?wRun('   ·   '+cat,{font:'Courier New',size:9,color:'8C7B6A'}):'',
+        timeN?wRun('   ·   '+timeN,{font:'Courier New',size:9,color:'8C7B6A'}):'',
+      ].join('');
+      const body=[
+        wPara(wRun(text,{size:11}),{after:meta?40:0}),
+        ...(meta?[wPara(meta,{after:desc?40:0})]:[]),
+        ...(desc?[wPara(wRun(desc,{size:10,italic:true,color:'6B6460'}),{after:0})]:[]),
+      ].join('');
+      return wTable(`<w:tr>
+        ${wCell(wPara(wRun('—',{font:'Courier New',size:10,color:'D4CFC5'}),{align:'center',after:0}),280)}
+        ${wCell(body,8746)}
+      </w:tr>`,'9026','ECEAE4');
+    }
+
+    function emptyRow(msg){
+      return wTable(`<w:tr>${wCell(wPara(wRun(msg,{font:'Courier New',size:9,italic:true,color:'C0B8B0'}),{after:0}),9026)}</w:tr>`,'9026','ECEAE4');
+    }
+
+    // ── Collect data ────────────────────────────────────────────────────────
+    const urgA=requests.filter(r=>r.urgent&&r.status==='approved');
+    const stdA=requests.filter(r=>!r.urgent&&!r.is_followup&&!r.deferred&&r.status==='approved');
+    const followA=requests.filter(r=>r.is_followup&&r.status==='approved');
+    const dateStr=friendlyDate();
+
+    // ── Cover page ──────────────────────────────────────────────────────────
+    const cover=[
+      wPara('',{after:3600}),
+      wPara(wRun('DÚKASA',{size:40,bold:true}),{align:'center',after:0}),
+      wPara(wRun('DISPENSARY',{size:40,bold:true}),{align:'center',after:2400}),
+      wPara('',{align:'center',before:0,after:0,borderBottom:true}),
+      wPara('',{after:280}),
+      wPara(wRun('Managers Meeting — Agenda',{size:17,bold:true,color:'927150'}),{align:'center',after:160}),
+      wPara(wRun(dateStr,{size:13,italic:true,color:'6B6460'}),{align:'center',after:120}),
+      wPara(wRun('9:00 – 11:00 AM  ·  All Managers',{size:10,color:'B8A99A',font:'Courier New'}),{align:'center',after:0}),
+    ].join('');
+
+    // ── Agenda body ─────────────────────────────────────────────────────────
+    const bodyParas=[
+      wPara(
+        wRun('DÚKASA DISPENSARY',{font:'Courier New',size:9,color:'927150'})+
+        wRun('   ·   Managers Meeting Agenda   ·   ',{font:'Courier New',size:9,color:'C0B8B0'})+
+        wRun(dateStr,{font:'Courier New',size:9,color:'8C7B6A'}),
+        {borderBottom:true,after:200}
+      ),
+      wPara('',{after:120}),
+    ];
+
+    for(const[si,sec] of liveSections.entries()){
+      const isDyn=sec.type!=='static';
+      const items=sec.type==='urgent'?urgA:sec.type==='submitted'?stdA:sec.type==='followup'?followA:sec.items;
+      bodyParas.push(secHeader(si+1,sec.title,sec.time));
+      bodyParas.push(wPara('',{after:40}));
+      if(!items.length){
+        bodyParas.push(emptyRow(sec.type==='urgent'?'No urgent items':sec.type==='followup'?'No follow-up items':sec.type==='submitted'?'No approved items':'No items'));
+      } else {
+        for(const item of items){
+          const owner=item.owner||((item.name||'')+(item.dept?' · '+item.dept:''));
+          bodyParas.push(agendaRow(
+            item.text||item.title||'', owner,
+            isDyn?item.cat:null, isDyn?(item.description||item.desc):null, isDyn?item.time_needed:null
+          ));
+        }
+      }
+      bodyParas.push(wPara('',{after:240}));
+    }
+
+    bodyParas.push(wPara(
+      wRun('Dúkasa Dispensary — Confidential   ·   '+dateStr,{font:'Courier New',size:9,italic:true,color:'C0B8B0'}),
+      {align:'center',borderBottom:false,before:360}
+    ));
+
+    // ── Assemble document XML ───────────────────────────────────────────────
+    const documentXml=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+<w:body>
+${cover}
+<w:p><w:pPr><w:pageBreakBefore/><w:sectPr>
+  <w:pgSz w:w="11906" w:h="16838"/>
+  <w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440"/>
+</w:sectPr></w:pPr></w:p>
+${bodyParas.join('')}
+<w:sectPr>
+  <w:pgSz w:w="11906" w:h="16838"/>
+  <w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134"/>
+</w:sectPr>
+</w:body>
+</w:document>`;
+
+    // ── Build ZIP ───────────────────────────────────────────────────────────
+    const zip=new JSZip();
+    zip.file('[Content_Types].xml',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/></Types>`);
+    zip.folder('_rels').file('.rels',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>`);
+    zip.folder('word/_rels').file('document.xml.rels',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`);
+    zip.folder('word').file('styles.xml',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Georgia" w:hAnsi="Georgia" w:cs="Georgia"/><w:sz w:val="22"/><w:szCs w:val="22"/><w:color w:val="1A1A1A"/><w:lang w:val="en-AU"/></w:rPr></w:rPrDefault></w:docDefaults></w:styles>`);
+    zip.folder('word').file('document.xml', documentXml);
+
+    zip.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'})
+      .then(blob=>{
+        const a=document.createElement('a');
+        a.href=URL.createObjectURL(blob);
+        a.download=(meetingDate?'Dukasa-Agenda-'+meetingDate:'Dukasa-Agenda')+'.docx';
+        a.click();
+        showToast('Word document downloaded — open with Word or upload to Google Drive → open as Google Doc.','t-ok');
+      }).catch(e=>{ showToast('Export error: '+e.message,'t-urgent'); console.error(e); });
+  } catch(e){ showToast('Export failed: '+e.message,'t-urgent'); console.error(e); }
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // GOOGLE DRIVE INTEGRATION
