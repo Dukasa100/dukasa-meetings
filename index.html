@@ -6,6 +6,7 @@
 <title>Dúkasa Dispensary — Managers Meeting</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,600&family=DM+Mono:wght@300;400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -109,9 +110,9 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 .sec-drag{display:none;align-items:center;justify-content:center;width:32px;cursor:grab;color:var(--paper-4);padding:0 4px;flex-shrink:0}
 .sec-drag:active{cursor:grabbing}
 .sec-drag svg{width:14px;height:14px}
-.edit-on .sec-drag{display:flex}
+.section-block:hover .sec-drag,.edit-on .sec-drag{display:flex}
 .sec-num{display:flex;align-items:center;justify-content:center;width:48px;height:100%;border-right:1px solid var(--paper-2);font-family:var(--mono);font-size:12px;color:var(--brand);font-weight:500;flex-shrink:0}
-.edit-on .sec-num{display:none}
+/* sec-num always visible */
 .sec-title-area{padding:12px 14px;flex:1;min-width:0}
 .sec-name{font-size:14px;font-weight:600;color:var(--ink)}
 .sec-tag{display:inline-flex;align-items:center;gap:3px;font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;padding:2px 7px;border-radius:10px;margin-left:8px;vertical-align:middle;border:1px solid}
@@ -120,7 +121,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 .tag-follow{background:var(--follow-l);color:var(--follow-p);border-color:var(--follow-m)}
 .sec-time-badge{font-family:var(--mono);font-size:11px;color:var(--ink-5);padding:0 12px;white-space:nowrap}
 .sec-actions{display:none;gap:4px;padding:0 10px;flex-shrink:0}
-.edit-on .sec-actions{display:flex}
+.section-head:hover .sec-actions,.edit-on .sec-actions{display:flex}
 .icon-btn{width:28px;height:28px;border:1px solid var(--paper-3);border-radius:var(--radius);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--ink-5);transition:all .13s;flex-shrink:0}
 .icon-btn svg{width:13px;height:13px}
 .icon-btn:hover{background:var(--paper-2);color:var(--ink)}
@@ -128,7 +129,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 
 /* Section inline editing */
 .sec-edit-row{display:none;padding:10px 14px;border-bottom:1px solid var(--paper-2);background:var(--paper);gap:8px;align-items:center;flex-wrap:wrap}
-.edit-on .sec-edit-row.open{display:flex}
+.sec-edit-row.open{display:flex}
 .sec-edit-row input{border:1px solid var(--paper-3);border-radius:var(--radius);padding:6px 10px;font-family:var(--sans);font-size:13px;color:var(--ink);background:#fff;outline:none;transition:border-color .15s}
 .sec-edit-row input:focus{border-color:var(--brand)}
 .sec-edit-row input.title-inp{flex:2;min-width:160px}
@@ -139,10 +140,10 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 .agenda-row:hover{background:var(--paper)}
 .agenda-row.dragging-item{opacity:.4}
 .agenda-row.drag-over-item{border-top:2px solid var(--brand)}
-.row-drag{display:none;align-items:center;justify-content:center;width:28px;cursor:grab;color:var(--paper-4);flex-shrink:0}
+.row-drag{display:none;align-items:center;justify-content:center;width:28px;cursor:grab;color:var(--paper-4);flex-shrink:0;transition:color .15s}
 .row-drag:active{cursor:grabbing}
 .row-drag svg{width:12px;height:12px}
-.edit-on .row-drag{display:flex}
+.agenda-row:hover .row-drag,.edit-on .row-drag{display:flex}
 .row-body{padding:10px 14px;flex:1;min-width:0}
 .row-title{font-size:14px;color:var(--ink);font-weight:500;line-height:1.4}
 .row-sub{font-family:var(--mono);font-size:11px;color:var(--ink-5);margin-top:2px;display:flex;flex-wrap:wrap;gap:6px}
@@ -153,12 +154,12 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 .chip-brand{background:var(--brand-l);border-color:var(--brand-m);color:var(--brand)}
 .chip-follow{background:var(--follow-l);border-color:var(--follow-m);color:var(--follow-p)}
 .chip-defer{background:var(--defer-l);border-color:var(--defer-m);color:var(--defer-b)}
-.row-actions{display:none;gap:4px;padding:0 10px;flex-shrink:0}
-.edit-on .row-actions{display:flex}
+.row-actions{display:none;gap:4px;padding:0 10px;flex-shrink:0;align-items:center}
+.agenda-row:hover .row-actions,.edit-on .row-actions{display:flex}
 
 /* Row inline edit */
 .row-edit-form{display:none;padding:8px 14px 10px 28px;border-top:1px solid var(--paper-2);background:var(--paper-2);flex-direction:column;gap:6px}
-.edit-on .row-edit-form.open{display:flex}
+.row-edit-form.open{display:flex}
 .row-edit-form input,.row-edit-form textarea{border:1px solid var(--paper-3);border-radius:var(--radius);padding:6px 10px;font-family:var(--sans);font-size:13px;color:var(--ink);background:#fff;outline:none;width:100%}
 .row-edit-form input:focus,.row-edit-form textarea:focus{border-color:var(--brand)}
 .row-edit-form textarea{resize:vertical;min-height:52px}
@@ -167,12 +168,10 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 .field-label{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-5);margin-bottom:2px}
 
 /* Add item / section buttons */
-.add-row-btn{display:none;width:100%;padding:8px 14px;border:none;background:transparent;border-top:1px dashed var(--paper-3);color:var(--brand);font-family:var(--mono);font-size:11px;cursor:pointer;text-align:left;transition:background .13s}
+.add-row-btn{display:block;width:100%;padding:8px 14px;border:none;background:transparent;border-top:1px dashed var(--paper-3);color:var(--brand);font-family:var(--mono);font-size:11px;cursor:pointer;text-align:left;transition:background .13s}
 .add-row-btn:hover{background:var(--brand-l)}
-.edit-on .add-row-btn{display:block}
-.add-section-btn{display:none;width:100%;padding:10px 14px;border:1px dashed var(--paper-3);border-radius:var(--radius-lg);background:transparent;color:var(--brand);font-family:var(--mono);font-size:11px;cursor:pointer;text-align:center;transition:background .13s;margin-top:4px}
+.add-section-btn{display:block;width:100%;padding:10px 14px;border:1px dashed var(--paper-3);border-radius:var(--radius-lg);background:transparent;color:var(--brand);font-family:var(--mono);font-size:11px;cursor:pointer;text-align:center;transition:background .13s;margin-top:4px}
 .add-section-btn:hover{background:var(--brand-l)}
-.edit-on .add-section-btn{display:block}
 
 .empty-row{padding:14px 16px;font-family:var(--mono);font-size:12px;color:var(--ink-5);border-top:1px solid var(--paper-2);font-style:italic}
 
@@ -327,6 +326,10 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
         <button class="btn btn-ghost" onclick="window.print()" id="print-btn">
           <svg fill="none" viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.5"><path d="M4 5V2h8v3M3 5h10a1 1 0 011 1v5H2V6a1 1 0 011-1zM4 11v3h8v-3"/></svg>Print
         </button>
+        <button class="btn btn-ghost" onclick="exportPDFPack()" id="pdf-pack-btn" style="border-color:var(--urgent-m);color:var(--urgent-r)">
+          <svg fill="none" viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.5"><path d="M2 12h12M5 12L2 7h4l1-4 3 4h4l-3 5z"/></svg>
+          PDF to Drive
+        </button>
         <button class="btn btn-brand" onclick="exportDocx()">
           <svg fill="none" viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.5"><path d="M9 2H4a1 1 0 00-1 1v10a1 1 0 001 1h8a1 1 0 001-1V6M9 2l4 4M9 2v4h4"/></svg>Export Google Doc
         </button>
@@ -345,12 +348,8 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
         <div class="banner banner-urgent" id="banner-urgent"></div>
         <div class="banner banner-defer" id="banner-defer"></div>
         <div class="agenda-edit-bar">
-          <div style="font-family:var(--mono);font-size:11px;color:var(--ink-5)">Hover any item to edit, reorder, or remove</div>
-          <label class="edit-mode-toggle" id="edit-toggle" onclick="toggleEditMode()">
-            <input type="checkbox" id="edit-checkbox">
-            <div class="tog-track"><div class="tog-thumb"></div></div>
-            <span style="margin-left:4px">Edit mode</span>
-          </label>
+          <div style="font-family:var(--mono);font-size:11px;color:var(--ink-5)">Hover any item or section to edit, reorder, or remove · Drag <svg width="10" height="10" fill="none" viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.5" style="vertical-align:middle;opacity:.5"><path d="M5 4h1M5 8h1M5 12h1M10 4h1M10 8h1M10 12h1"/></svg> to rearrange · Changes for this meeting only</div>
+          <button class="btn btn-ghost" onclick="resetToDefault()" style="padding:4px 10px;font-size:11px">↺ Reset to default</button>
         </div>
         <div id="agenda-sections"></div>
         <button class="add-section-btn" onclick="addSection()">+ Add section</button>
@@ -378,6 +377,21 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
             <div class="fg" style="margin-bottom:18px"><div class="field"><label>Time needed</label>
               <select id="f-time"><option value="5 min">5 minutes</option><option value="10 min">10 minutes</option><option value="15 min">15 minutes</option><option value="20 min">20 minutes</option><option value="30 min">30 minutes</option></select>
             </div></div>
+            <div class="fg full" style="margin-bottom:14px">
+              <div class="field">
+                <label>Supporting files <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:10px;color:var(--ink-5)">— saved to Google Drive meeting folder</span></label>
+                <div id="drive-status-form" class="drive-status disconnected">
+                  <svg fill="none" viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.5"><path d="M2 12h12M5 12L2 7h4l1-4 3 4h4l-3 5z"/></svg>
+                  <span id="drive-status-text">Connect Google Drive in Settings to enable file uploads</span>
+                </div>
+                <div class="file-drop-zone" id="drop-zone" onclick="document.getElementById('f-files').click()">
+                  <input type="file" id="f-files" multiple accept="*/*" onchange="onFilesSelected(this.files)" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none">
+                  <div class="dz-icon">📎</div>
+                  <div class="dz-text"><strong>Click to attach files</strong>or drag &amp; drop here</div>
+                </div>
+                <div class="file-list" id="file-list"></div>
+              </div>
+            </div>
             <div class="toggles-row">
               <div class="tog-box urgent-tog" id="urg-toggle" onclick="toggleBox('urgent')">
                 <input type="checkbox" id="f-urgent"><div class="tog-track"><div class="tog-thumb"></div></div>
@@ -406,20 +420,48 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 
       <!-- Settings -->
       <div class="panel" id="panel-settings">
-        <div class="settings-card">
-          <h2>Database connection</h2>
-          <div class="cfg-field"><label>Project URL</label><input type="text" id="cfg-url" placeholder="https://xxxxxxxxxxxx.supabase.co"></div>
-          <div class="cfg-field"><label>API key</label><input type="text" id="cfg-key" placeholder="sb_publishable_…"></div>
-          <div style="display:flex;gap:8px;margin-top:14px">
-            <button class="btn btn-brand" onclick="saveConfig()"><svg fill="none" viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.5"><path d="M3 8l3 3 7-7"/></svg>Connect</button>
-            <button class="btn btn-ghost" onclick="clearConfig()">Disconnect</button>
+        <div style="display:flex;flex-direction:column;gap:16px;max-width:560px">
+          <div class="settings-card">
+            <h2>Database — Supabase</h2>
+            <div class="cfg-field"><label>Project URL</label><input type="text" id="cfg-url" placeholder="https://xxxxxxxxxxxx.supabase.co"></div>
+            <div class="cfg-field"><label>API key</label><input type="text" id="cfg-key" placeholder="sb_publishable_…"></div>
+            <div style="display:flex;gap:8px;margin-top:14px">
+              <button class="btn btn-brand" onclick="saveConfig()"><svg fill="none" viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.5"><path d="M3 8l3 3 7-7"/></svg>Connect</button>
+              <button class="btn btn-ghost" onclick="clearConfig()">Disconnect</button>
+            </div>
+            <div class="cfg-note" id="cfg-status"></div>
+            <div class="sql-box" style="margin-top:14px;font-family:var(--mono);font-size:11px;line-height:1.8;color:var(--ink-4);background:var(--paper-2);padding:10px;border-radius:var(--radius)">
+              Run in Supabase SQL Editor (once):<br>
+              ALTER TABLE agenda_requests ADD COLUMN IF NOT EXISTS deferred boolean default false;<br>
+              ALTER TABLE agenda_requests ADD COLUMN IF NOT EXISTS is_followup boolean default false;<br>
+              ALTER TABLE agenda_requests ADD COLUMN IF NOT EXISTS followup_of text;<br>
+              ALTER TABLE agenda_requests ADD COLUMN IF NOT EXISTS drive_files jsonb default '[]';
+            </div>
           </div>
-          <div class="cfg-note" id="cfg-status"></div>
-          <div class="sql-box" style="margin-top:18px">
-            Run once in Supabase SQL Editor if upgrading:<br>
-            ALTER TABLE agenda_requests ADD COLUMN IF NOT EXISTS deferred boolean default false;<br>
-            ALTER TABLE agenda_requests ADD COLUMN IF NOT EXISTS is_followup boolean default false;<br>
-            ALTER TABLE agenda_requests ADD COLUMN IF NOT EXISTS followup_of text;
+
+          <div class="settings-card">
+            <h2>Google Drive — File uploads &amp; PDF export</h2>
+            <p style="font-size:13px;color:var(--ink-4);margin-bottom:14px;line-height:1.6">Files attached to agenda items are saved to a dedicated Google Drive folder for each meeting. The PDF export pack is also saved there. Requires a Google OAuth Client ID — <a href="https://console.cloud.google.com/apis/credentials" target="_blank" style="color:var(--brand)">create one free here</a>.</p>
+            <div class="cfg-field">
+              <label>Google OAuth Client ID</label>
+              <input type="text" id="cfg-google-client-id" placeholder="xxxxxxxxxxxx.apps.googleusercontent.com">
+              <div style="font-family:var(--mono);font-size:10px;color:var(--ink-5);margin-top:4px">In Google Cloud Console: APIs &amp; Services → Credentials → Create OAuth 2.0 Client ID → Web application → Add your site URL to Authorised JavaScript origins</div>
+            </div>
+            <div class="cfg-field">
+              <label>Drive folder name prefix <span style="font-weight:400;text-transform:none">(optional)</span></label>
+              <input type="text" id="cfg-drive-prefix" placeholder="Dúkasa Dispensary Managers Meeting">
+            </div>
+            <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
+              <button class="btn btn-brand" onclick="saveDriveConfig()"><svg fill="none" viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.5"><path d="M3 8l3 3 7-7"/></svg>Save &amp; sign in</button>
+              <button class="btn btn-ghost" onclick="signOutDrive()">Sign out</button>
+            </div>
+            <div class="cfg-note" id="drive-cfg-status" style="margin-top:10px"></div>
+            <div id="drive-folder-info" style="margin-top:10px;display:none">
+              <a id="drive-folder-link" href="#" target="_blank" class="drive-folder-link">
+                <svg fill="none" viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.5"><path d="M2 4h4l2 2h6v8H2z"/></svg>
+                <span id="drive-folder-name">Open meeting folder</span>
+              </a>
+            </div>
           </div>
         </div>
       </div>
@@ -539,6 +581,15 @@ async function loadAll(){
     db.from('meeting_settings').select('*')
   ]);
   requests=reqs||[];
+  // Load drive folder if set
+  const fd=(settings||[]).find(s=>s.key==='drive_folder_id');
+  const fu=(settings||[]).find(s=>s.key==='drive_folder_url');
+  if(fd) gDriveFolderId=fd.value;
+  if(fu){ gDriveFolderUrl=fu.value;
+    const fi=document.getElementById('drive-folder-info');
+    const fl=document.getElementById('drive-folder-link');
+    if(fi&&fl){fi.style.display='';fl.href=fu.value;}
+  }
   const ss=(settings||[]).find(s=>s.key==='live_sections');
   if(ss&&ss.value){try{liveSections=JSON.parse(ss.value);}catch{liveSections=cloneSections();}}
   else{liveSections=cloneSections();}
@@ -630,16 +681,8 @@ function showPanel(name){
   document.getElementById('print-btn').style.display=name==='agenda'?'':'none';
 }
 
-// ── Edit mode ─────────────────────────────────────────────────────────────
-function toggleEditMode(){
-  editMode=!editMode;
-  document.getElementById('edit-toggle').classList.toggle('on',editMode);
-  document.getElementById('agenda-sections').classList.toggle('edit-on',editMode);
-  document.querySelector('.add-section-btn').parentElement.classList.toggle('edit-on',editMode)||
-  document.getElementById('panel-agenda').classList.toggle('edit-on',editMode);
-  // apply edit-on to the whole panel
-  document.getElementById('panel-agenda').classList.toggle('edit-on',editMode);
-}
+// ── Edit mode — always on, no toggle needed ───────────────────────────────
+function toggleEditMode(){ /* edit controls always visible */ }
 
 // ── Section management ────────────────────────────────────────────────────
 function addSection(){
@@ -671,7 +714,7 @@ function saveSecEdit(sid){
 }
 
 function deleteSection(sid){
-  if(!confirm('Remove this section and all its items? This resets at the next meeting.'))return;
+  if(!confirm('Remove this section for this meeting? It will restore next month from the default template.'))return;
   liveSections=liveSections.filter(s=>s.id!==sid);
   saveSections();renderAgenda();showToast('Section removed.');
 }
@@ -714,10 +757,32 @@ function deleteItem(sid,iid){
   // For this meeting only — note: it will restore next meeting from DEFAULT
   const sec=liveSections.find(s=>s.id===sid);if(!sec)return;
   sec.items=sec.items.filter(i=>i.id!==iid);
-  saveSections();renderAgenda();showToast('Item removed from this meeting\'s agenda.');
+  saveSections();renderAgenda();showToast('Removed for this meeting only — resets next month.');
 }
 
-// ── DB request actions ────────────────────────────────────────────────────
+// ── DB request inline edit ────────────────────────────────────────────────
+function openDBItemEdit(e, id){
+  // Simple prompt-based edit for DB items
+  const req = requests.find(r=>r.id===id);
+  if(!req) return;
+  const newTitle = prompt('Edit item title:', req.title);
+  if(newTitle===null) return;
+  const newOwner = prompt('Edit owner/role:', req.name+(req.dept?' · '+req.dept:''));
+  if(newOwner===null) return;
+  const newDesc = prompt('Edit description (optional):', req.description||'');
+  if(!db) return;
+  db.from('agenda_requests').update({
+    title: newTitle.trim()||req.title,
+    name: newOwner.trim()||req.name,
+    description: newDesc.trim()||null
+  }).eq('id',id).then(({error})=>{
+    if(!error){
+      const i=requests.findIndex(r=>r.id===id);
+      if(i>-1){requests[i].title=newTitle||req.title;requests[i].name=newOwner||req.name;requests[i].description=newDesc||null;}
+      renderAgenda();renderBoard();showToast('Item updated.','t-ok');
+    }
+  });
+}
 async function approveReq(id){
   if(!db)return;
   await db.from('agenda_requests').update({status:'approved',deferred:false}).eq('id',id);
@@ -821,7 +886,7 @@ function renderAgenda(){
   else{db2.className='banner banner-defer';db2.innerHTML='';}
 
   const panel=document.getElementById('panel-agenda');
-  const em=panel.classList.contains('edit-on');
+  const em=true; // Always editable
 
   document.getElementById('agenda-sections').innerHTML=liveSections.map((sec,si)=>{
     const isDynamic=sec.type!=='static';
@@ -844,7 +909,7 @@ function renderAgenda(){
           // For static/custom sections, item.id is always our local id
           const isDBItem=!!(item.created_at);// DB requests have created_at
           return `<div class="agenda-row" id="row-${sec.id}-${item.id}"
-            draggable="${em&&!isDynamic}"
+            draggable="${!isDynamic}"
             ondragstart="onItemDragStart(event,'${sec.id}','${item.id}')"
             ondragend="onItemDragEnd(event)"
             ondragover="onItemDragOver(event,'${sec.id}','${item.id}')"
@@ -864,6 +929,7 @@ function renderAgenda(){
             </div>
             <div class="row-actions">
               ${!isDynamic?`<button class="icon-btn" onclick="openItemEditFn('${sec.id}','${item.id}')" title="Edit">${IC.edit}</button>`:''}
+              ${isDynamic?`<button class="icon-btn" onclick="openDBItemEdit(event,'${item.id}')" title="Edit">${IC.edit}</button>`:''}
               <button class="icon-btn danger" onclick="${isDBItem?`deleteReq('${item.id}')`:`deleteItem('${sec.id}','${item.id}')`}" title="Remove">${IC.trash}</button>
             </div>
           </div>
@@ -881,7 +947,7 @@ function renderAgenda(){
         }).join('');
 
     return `<div class="section-block" id="secblock-${sec.id}"
-        draggable="${em}"
+        draggable="true"
         ondragstart="if(event.target.classList.contains('sec-drag')||event.target.closest('.sec-drag'))onSecDragStart(event,'${sec.id}')"
         ondragend="onSecDragEnd(event)"
         ondragover="onSecDragOver(event,'${sec.id}')"
@@ -918,8 +984,8 @@ function renderAgenda(){
   }).join('');
 
   // Re-apply edit mode class to newly rendered elements
-  document.getElementById('agenda-sections').classList.toggle('edit-on',editMode);
-  document.getElementById('panel-agenda').classList.toggle('edit-on',editMode);
+  document.getElementById('agenda-sections').classList.add('edit-on');
+  document.getElementById('panel-agenda').classList.add('edit-on');
 }
 
 // ── Render board ──────────────────────────────────────────────────────────
@@ -1011,4 +1077,302 @@ async function submitRequest(){
     description:document.getElementById('f-desc').value.trim()||null,
     time_needed:document.getElementById('f-time').value,
     urgent:urgentOn,deferred:deferOn,is_followup:false,
-    status:urgentOn?'approved':deferOn?'deferred':'pendi
+    status:urgentOn?'approved':deferOn?'deferred':'pending'
+  });
+  btn.disabled=false;
+  btn.innerHTML='<svg fill="none" viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.5"><path d="M2 8h10M9 5l3 3-3 3"/></svg> Submit request';
+  if(error){
+    document.getElementById('submit-status').textContent='Error: '+error.message;
+    showToast('Submission failed.','t-urgent');
+  } else {
+    // Upload files to Drive after DB insert succeeds
+    if(gPendingFiles.length && gAccessToken){
+      document.getElementById('submit-status').textContent='Uploading files to Drive…';
+      const uploadedFiles = await uploadPendingFiles();
+      if(uploadedFiles.length){
+        // Store file metadata back to the request
+        // We need the inserted row ID - re-fetch it
+        const {data:rows} = await db.from('agenda_requests')
+          .select('id').eq('title',title).eq('name',name)
+          .order('created_at',{ascending:false}).limit(1);
+        if(rows && rows.length){
+          await db.from('agenda_requests')
+            .update({drive_files: uploadedFiles})
+            .eq('id',rows[0].id);
+        }
+      }
+      gPendingFiles=[];renderFileList();
+    }
+    document.getElementById('submit-status').textContent='✓ Submitted';
+    showToast(
+      urgentOn?'Urgent item live for all managers.':
+      deferOn?'Saved for next-next meeting.':
+      'Item submitted — pending approval.',
+      urgentOn?'t-urgent':deferOn?'':'t-ok'
+    );
+    clearForm();setTimeout(()=>showPanel('agenda'),1000);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// GOOGLE DRIVE INTEGRATION
+// ═══════════════════════════════════════════════════════════════════════════
+
+let gAccessToken = null;
+let gDriveFolderId = null;
+let gDriveFolderUrl = null;
+let gPendingFiles = [];
+let gTokenClient = null;
+
+function getDriveConfig(){
+  return {
+    clientId: localStorage.getItem('dukasa-google-client-id')||'',
+    prefix: localStorage.getItem('dukasa-drive-prefix')||'Dúkasa Dispensary Managers Meeting'
+  };
+}
+
+function saveDriveConfig(){
+  const cid=document.getElementById('cfg-google-client-id').value.trim();
+  const prefix=document.getElementById('cfg-drive-prefix').value.trim();
+  if(!cid){document.getElementById('drive-cfg-status').textContent='Client ID required.';return;}
+  localStorage.setItem('dukasa-google-client-id',cid);
+  if(prefix) localStorage.setItem('dukasa-drive-prefix',prefix);
+  document.getElementById('drive-cfg-status').textContent='Saved — signing in…';
+  initGoogleDrive();
+}
+
+function initGoogleDrive(){
+  const cfg=getDriveConfig();
+  if(!cfg.clientId) return;
+  if(!window.google||!window.google.accounts){setTimeout(initGoogleDrive,800);return;}
+  document.getElementById('cfg-google-client-id').value=cfg.clientId;
+  document.getElementById('cfg-drive-prefix').value=cfg.prefix;
+  gTokenClient=google.accounts.oauth2.initTokenClient({
+    client_id:cfg.clientId,
+    scope:'https://www.googleapis.com/auth/drive.file',
+    callback:onGoogleToken
+  });
+}
+
+function requestDriveAccess(cb){
+  if(gAccessToken){cb&&cb();return;}
+  if(!gTokenClient){showToast('Configure Google Drive in Settings first.','t-urgent');return;}
+  gTokenClient._cb=cb;
+  gTokenClient.requestAccessToken({prompt:''});
+}
+
+function onGoogleToken(resp){
+  if(resp.error){setDriveStatus(false);return;}
+  gAccessToken=resp.access_token;
+  setDriveStatus(true);
+  if(gTokenClient._cb){gTokenClient._cb();gTokenClient._cb=null;}
+  ensureMeetingFolder();
+}
+
+function signOutDrive(){
+  if(gAccessToken&&window.google) google.accounts.oauth2.revoke(gAccessToken);
+  gAccessToken=null;gDriveFolderId=null;gDriveFolderUrl=null;
+  setDriveStatus(false);
+  document.getElementById('drive-folder-info').style.display='none';
+  showToast('Signed out of Google Drive.');
+}
+
+function setDriveStatus(connected){
+  const el=document.getElementById('drive-status-form');
+  const cfg=document.getElementById('drive-cfg-status');
+  if(!el) return;
+  if(connected){
+    el.className='drive-status connected';
+    el.innerHTML='<svg fill="none" viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.5"><path d="M3 8l3 3 7-7"/></svg><span>Google Drive connected — files save to meeting folder</span>';
+    if(cfg) cfg.textContent='✓ Connected to Google Drive.';
+  } else {
+    el.className='drive-status disconnected';
+    el.innerHTML='<svg fill="none" viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.5"><path d="M2 12h12M5 12L2 7h4l1-4 3 4h4l-3 5z"/></svg><span>Connect Google Drive in Settings to enable file uploads</span>';
+  }
+}
+
+async function ensureMeetingFolder(){
+  if(!gAccessToken) return;
+  const cfg=getDriveConfig();
+  const dateLabel=meetingDate?new Date(meetingDate+'T00:00:00').toLocaleDateString('en-AU',{day:'numeric',month:'long',year:'numeric'}):'Undated';
+  const folderName=cfg.prefix+' — '+dateLabel;
+  const searchRes=await gFetch('GET',`https://www.googleapis.com/drive/v3/files?q=name='${encodeURIComponent(folderName)}' and mimeType='application/vnd.google-apps.folder' and trashed=false&fields=files(id,webViewLink,name)`);
+  const data=await searchRes.json();
+  if(data.files&&data.files.length>0){
+    gDriveFolderId=data.files[0].id;gDriveFolderUrl=data.files[0].webViewLink;
+  } else {
+    const cr=await gFetch('POST','https://www.googleapis.com/drive/v3/files?fields=id,webViewLink',{name:folderName,mimeType:'application/vnd.google-apps.folder'});
+    const f=await cr.json();gDriveFolderId=f.id;gDriveFolderUrl=f.webViewLink;
+  }
+  const fi=document.getElementById('drive-folder-info');
+  const fl=document.getElementById('drive-folder-link');
+  const fn=document.getElementById('drive-folder-name');
+  if(fi&&fl&&fn){fi.style.display='';fl.href=gDriveFolderUrl||'#';fn.textContent=folderName;}
+  if(db){
+    await db.from('meeting_settings').upsert({key:'drive_folder_id',value:gDriveFolderId});
+    await db.from('meeting_settings').upsert({key:'drive_folder_url',value:gDriveFolderUrl});
+  }
+}
+
+function gFetch(method,url,body=null){
+  return fetch(url,{method,headers:{'Authorization':'Bearer '+gAccessToken,...(body?{'Content-Type':'application/json'}:{})}, ...(body?{body:JSON.stringify(body)}:{})});
+}
+
+async function uploadFileToDrive(file){
+  if(!gAccessToken||!gDriveFolderId) return null;
+  const meta={name:file.name,parents:[gDriveFolderId]};
+  const form=new FormData();
+  form.append('metadata',new Blob([JSON.stringify(meta)],{type:'application/json'}));
+  form.append('file',file);
+  const res=await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink,name',{
+    method:'POST',headers:{'Authorization':'Bearer '+gAccessToken},body:form
+  });
+  if(!res.ok) return null;
+  return await res.json();
+}
+
+function onFilesSelected(files){
+  for(const f of files){
+    if(gPendingFiles.find(p=>p.name===f.name)) continue;
+    gPendingFiles.push({file:f,name:f.name,size:f.size,driveId:null,driveUrl:null,status:'pending'});
+  }
+  renderFileList();
+  const fi=document.getElementById('f-files');if(fi) fi.value='';
+}
+
+function removeFile(name){
+  gPendingFiles=gPendingFiles.filter(f=>f.name!==name);
+  renderFileList();
+}
+
+function renderFileList(){
+  const el=document.getElementById('file-list');if(!el) return;
+  el.innerHTML=gPendingFiles.map(f=>{
+    const sz=f.size>1048576?(f.size/1048576).toFixed(1)+'MB':(f.size/1024).toFixed(0)+'KB';
+    const cls=f.status==='uploaded'?'file-chip uploaded':f.status==='uploading'?'file-chip uploading':'file-chip';
+    return `<div class="${cls}">
+      <svg width="12" height="12" fill="none" viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.5"><path d="M9 2H4a1 1 0 00-1 1v10a1 1 0 001 1h8a1 1 0 001-1V6M9 2l4 4M9 2v4h4"/></svg>
+      <span class="fc-name">${esc(f.name)}</span><span class="fc-size">${sz}</span>
+      ${f.driveUrl?`<a href="${f.driveUrl}" target="_blank" class="attach-link">View in Drive</a>`:''}
+      ${f.status!=='uploading'?`<button class="fc-del" onclick="removeFile('${esc(f.name).replace(/'/g,"\'")}')" title="Remove">✕</button>`:''}
+    </div>`;
+  }).join('');
+}
+
+async function uploadPendingFiles(){
+  if(!gPendingFiles.length) return [];
+  if(!gDriveFolderId) await ensureMeetingFolder();
+  const results=[];
+  for(const f of gPendingFiles){
+    if(f.status==='uploaded'){results.push({name:f.name,driveId:f.driveId,driveUrl:f.driveUrl});continue;}
+    f.status='uploading';renderFileList();
+    const up=await uploadFileToDrive(f.file);
+    if(up){f.driveId=up.id;f.driveUrl=up.webViewLink;f.status='uploaded';}
+    else f.status='pending';
+    renderFileList();
+    if(up) results.push({name:f.name,driveId:up.id,driveUrl:up.webViewLink});
+  }
+  return results;
+}
+
+// ── PDF pack export ────────────────────────────────────────────────────────
+async function exportPDFPack(){
+  if(!gAccessToken){showToast('Sign in to Google Drive in Settings first.','t-urgent');return;}
+  if(!gDriveFolderId) await ensureMeetingFolder();
+  showToast('Generating PDF pack…','t-brand');
+  const btn=document.getElementById('pdf-pack-btn');if(btn) btn.disabled=true;
+  try {
+    const html=buildAgendaPDFHtml();
+    const file=new File([html],`Dukasa-Agenda-${meetingDate||'undated'}.html`,{type:'text/html'});
+    const meta={name:'Dúkasa Agenda — '+friendlyDate()+'.html',parents:[gDriveFolderId]};
+    const form=new FormData();
+    form.append('metadata',new Blob([JSON.stringify(meta)],{type:'application/json'}));
+    form.append('file',file);
+    await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink',{
+      method:'POST',headers:{'Authorization':'Bearer '+gAccessToken},body:form
+    });
+    const win=window.open('','_blank');
+    win.document.write(html);win.document.close();
+    setTimeout(()=>win.print(),800);
+    showToast('PDF saved to Drive — print dialog opened.','t-ok');
+    if(gDriveFolderUrl) setTimeout(()=>window.open(gDriveFolderUrl,'_blank'),1800);
+  } catch(e){showToast('PDF export failed: '+e.message,'t-urgent');}
+  if(btn) btn.disabled=false;
+}
+
+function buildAgendaPDFHtml(){
+  const urgA=requests.filter(r=>r.urgent&&r.status==='approved');
+  const stdA=requests.filter(r=>!r.urgent&&!r.is_followup&&!r.deferred&&r.status==='approved');
+  const followA=requests.filter(r=>r.is_followup&&r.status==='approved');
+  const secHtml=liveSections.map((sec,si)=>{
+    const items=sec.type==='urgent'?urgA:sec.type==='submitted'?stdA:sec.type==='followup'?followA:sec.items;
+    const itemsHtml=!items.length?'<div class="empty-item">No items</div>':items.map(item=>{
+      const owner=item.owner||((item.name||'')+(item.dept?' · '+item.dept:''));
+      const files=(item.drive_files||[]);
+      const fileLinks=files.length?'<div class="file-links">'+files.map(f=>`<a href="${f.driveUrl}" class="file-link">📎 ${esc(f.name)}</a>`).join('')+'</div>':'';
+      return `<div class="agenda-item">
+        <div class="item-title">${esc(item.text||item.title||'')}</div>
+        ${owner?`<div class="item-meta">👤 ${esc(owner)}${item.cat?' · '+esc(item.cat):''}${item.time_needed?' · '+esc(item.time_needed):''}</div>`:''}
+        ${item.description||item.desc?`<div class="item-desc">${esc(item.description||item.desc||'')}</div>`:''}
+        ${fileLinks}
+      </div>`;
+    }).join('');
+    return `<div class="section"><div class="sec-header"><div class="sec-num">${String(si+1).padStart(2,'0')}</div><div class="sec-title">${esc(sec.title)}</div><div class="sec-time">${esc(sec.time)}</div></div><div class="items">${itemsHtml}</div></div>`;
+  }).join('');
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Dúkasa — Agenda</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=DM+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Cormorant Garamond',Georgia,serif;background:#fff;color:#1a1a1a;font-size:13pt;line-height:1.55}
+@page{size:A4;margin:2cm 2.2cm}
+.cover{min-height:97vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;page-break-after:always}
+.cover-brand{font-size:52pt;font-weight:600;letter-spacing:.05em;line-height:1.1}
+.cover-rule{width:80px;height:2px;background:#927150;margin:28px auto}
+.cover-title{font-size:18pt;color:#927150;font-weight:600;margin-bottom:8px}
+.cover-date{font-size:13pt;color:#6b6460;font-style:italic}
+.cover-time{font-family:'DM Mono',monospace;font-size:9pt;color:#b8a99a;margin-top:8px;letter-spacing:.08em}
+.page-hd{border-bottom:1px solid #d4cfc5;padding-bottom:8px;margin-bottom:28px;display:flex;justify-content:space-between;font-family:'DM Mono',monospace;font-size:8pt}
+.page-hd-l{color:#927150;letter-spacing:.08em;text-transform:uppercase}
+.page-hd-r{color:#b8a99a}
+.section{margin-bottom:20pt;break-inside:avoid}
+.sec-header{display:grid;grid-template-columns:44px 1fr auto;align-items:center;background:#ede8e0;padding:8px 12px;margin-bottom:2px}
+.sec-num{font-family:'DM Mono',monospace;font-size:10pt;color:#927150;font-weight:500}
+.sec-title{font-size:13pt;font-weight:600}
+.sec-time{font-family:'DM Mono',monospace;font-size:9pt;color:#927150}
+.agenda-item{padding:8px 0 8px 44px;border-bottom:1px solid #eceae4}
+.agenda-item:last-child{border-bottom:none}
+.item-title{font-size:12pt;font-weight:500;margin-bottom:3px}
+.item-meta{font-family:'DM Mono',monospace;font-size:8.5pt;color:#927150;margin-bottom:2px}
+.item-desc{font-size:10.5pt;color:#6b6460;font-style:italic;margin-top:2px}
+.empty-item{padding:8px 0 8px 44px;font-family:'DM Mono',monospace;font-size:9pt;color:#b0a898;font-style:italic}
+.file-links{margin-top:5px;display:flex;flex-wrap:wrap;gap:5px}
+.file-link{font-family:'DM Mono',monospace;font-size:8pt;color:#927150;padding:2px 7px;border:1px solid #d9c4a8;border-radius:3px;background:#f5ede3;text-decoration:none}
+.footer{border-top:1px solid #d4cfc5;padding-top:8px;margin-top:28pt;font-family:'DM Mono',monospace;font-size:8pt;color:#b8a99a;display:flex;justify-content:space-between}
+</style></head>
+<body>
+<div class="cover">
+  <div class="cover-brand">DÚKASA<br>DISPENSARY</div>
+  <div class="cover-rule"></div>
+  <div class="cover-title">Managers Meeting — Agenda</div>
+  <div class="cover-date">${friendlyDate()}</div>
+  <div class="cover-time">9:00 – 11:00 AM  ·  ALL MANAGERS</div>
+</div>
+<div class="page-hd"><div class="page-hd-l">Dúkasa Dispensary · Managers Meeting</div><div class="page-hd-r">${friendlyDate()}</div></div>
+${secHtml}
+<div class="footer"><span>Dúkasa Dispensary — Confidential</span><span>${friendlyDate()}</span></div>
+</body></html>`;
+}
+
+// Drop zone drag events
+document.addEventListener('DOMContentLoaded',()=>{
+  const dz=document.getElementById('drop-zone');
+  if(!dz) return;
+  dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag-active');});
+  dz.addEventListener('dragleave',()=>dz.classList.remove('drag-active'));
+  dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('drag-active');if(e.dataTransfer.files.length) onFilesSelected(e.dataTransfer.files);});
+});
+
+window.addEventListener('load',()=>{initSupabase();setTimeout(initGoogleDrive,1000);});
+</script>
+</body>
+</html>
