@@ -106,20 +106,20 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 .section-block:hover{box-shadow:var(--shadow-lg)}
 .section-block.drag-over{border:2px dashed var(--brand);background:var(--brand-l)}
 .section-block.dragging{opacity:.4}
-.section-head{display:grid;grid-template-columns:auto 1fr auto auto;align-items:center;gap:0;border-bottom:1px solid var(--paper-2);min-height:50px}
+.section-head{display:flex;align-items:center;gap:0;border-bottom:1px solid var(--paper-2);min-height:50px}
 .sec-drag{display:none;align-items:center;justify-content:center;width:32px;cursor:grab;color:var(--paper-4);padding:0 4px;flex-shrink:0}
 .sec-drag:active{cursor:grabbing}
 .sec-drag svg{width:14px;height:14px}
 .section-block:hover .sec-drag,.edit-on .sec-drag{display:flex}
 .sec-num{display:flex;align-items:center;justify-content:center;width:48px;height:100%;border-right:1px solid var(--paper-2);font-family:var(--mono);font-size:12px;color:var(--brand);font-weight:500;flex-shrink:0}
 /* sec-num always visible */
-.sec-title-area{padding:12px 14px;flex:1;min-width:0}
+.sec-title-area{padding:12px 14px;flex:1;min-width:0;text-align:left}
 .sec-name{font-size:14px;font-weight:600;color:var(--ink)}
 .sec-tag{display:inline-flex;align-items:center;gap:3px;font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;padding:2px 7px;border-radius:10px;margin-left:8px;vertical-align:middle;border:1px solid}
 .tag-urgent{background:var(--urgent-l);color:var(--urgent-r);border-color:var(--urgent-m)}
 .tag-sub{background:var(--brand-l);color:var(--brand);border-color:var(--brand-m)}
 .tag-follow{background:var(--follow-l);color:var(--follow-p);border-color:var(--follow-m)}
-.sec-time-badge{font-family:var(--mono);font-size:11px;color:var(--ink-5);padding:0 12px;white-space:nowrap}
+.sec-time-badge{font-family:var(--mono);font-size:11px;color:var(--ink-5);padding:0 12px;white-space:nowrap;margin-left:auto}
 .sec-actions{display:none;gap:4px;padding:0 10px;flex-shrink:0}
 .section-head:hover .sec-actions,.edit-on .sec-actions{display:flex}
 .icon-btn{width:28px;height:28px;border:1px solid var(--paper-3);border-radius:var(--radius);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--ink-5);transition:all .13s;flex-shrink:0}
@@ -824,8 +824,8 @@ async function deleteReq(id){
 }
 
 // ── Drag & drop sections ──────────────────────────────────────────────────
-function onSecDragStart(e,sid){dragSec=sid;e.currentTarget.closest('.section-block').classList.add('dragging');}
-function onSecDragEnd(e){e.currentTarget.closest('.section-block').classList.remove('dragging');dragSec=null;}
+function onSecDragStart(e,sid){dragSec=sid;e.dataTransfer.effectAllowed='move';document.getElementById('secblock-'+sid).classList.add('dragging');}
+function onSecDragEnd(e){document.querySelectorAll('.section-block').forEach(el=>el.classList.remove('dragging'));dragSec=null;}
 function onSecDragOver(e,sid){e.preventDefault();if(dragSec&&dragSec!==sid){document.querySelectorAll('.section-block').forEach(el=>el.classList.remove('drag-over'));document.getElementById('secblock-'+sid).classList.add('drag-over');}}
 function onSecDrop(e,sid){
   e.preventDefault();
@@ -839,8 +839,8 @@ function onSecDrop(e,sid){
 }
 
 // ── Drag & drop items ─────────────────────────────────────────────────────
-function onItemDragStart(e,sid,iid){dragItem=iid;dragItemSec=sid;e.currentTarget.closest('.agenda-row').classList.add('dragging-item');}
-function onItemDragEnd(e){e.currentTarget.closest('.agenda-row').classList.remove('dragging-item');dragItem=null;dragItemSec=null;}
+function onItemDragStart(e,sid,iid){dragItem=iid;dragItemSec=sid;e.dataTransfer.effectAllowed='move';document.getElementById('row-'+sid+'-'+iid).classList.add('dragging-item');}
+function onItemDragEnd(e){document.querySelectorAll('.agenda-row').forEach(el=>el.classList.remove('dragging-item'));dragItem=null;dragItemSec=null;}
 function onItemDragOver(e,sid,iid){e.preventDefault();if(dragItem&&dragItem!==iid){document.querySelectorAll('.agenda-row').forEach(el=>el.classList.remove('drag-over-item'));const el=document.getElementById('row-'+sid+'-'+iid);if(el)el.classList.add('drag-over-item');}}
 function onItemDrop(e,toSid,toIid){
   e.preventDefault();
@@ -909,12 +909,9 @@ function renderAgenda(){
           // For static/custom sections, item.id is always our local id
           const isDBItem=!!(item.created_at);// DB requests have created_at
           return `<div class="agenda-row" id="row-${sec.id}-${item.id}"
-            draggable="${!isDynamic}"
-            ondragstart="onItemDragStart(event,'${sec.id}','${item.id}')"
-            ondragend="onItemDragEnd(event)"
             ondragover="onItemDragOver(event,'${sec.id}','${item.id}')"
             ondrop="onItemDrop(event,'${sec.id}','${item.id}')">
-            <div class="row-drag">${IC.drag}</div>
+            <div class="row-drag" ${!isDynamic?`draggable="true" ondragstart="onItemDragStart(event,'${sec.id}','${item.id}')" ondragend="onItemDragEnd(event)"`:''}>${IC.drag}</div>
             <div class="row-body">
               <div class="row-title">${esc(item.text||item.title)}</div>
               <div class="row-sub">
@@ -947,13 +944,12 @@ function renderAgenda(){
         }).join('');
 
     return `<div class="section-block" id="secblock-${sec.id}"
-        draggable="true"
-        ondragstart="if(event.target.classList.contains('sec-drag')||event.target.closest('.sec-drag'))onSecDragStart(event,'${sec.id}')"
-        ondragend="onSecDragEnd(event)"
         ondragover="onSecDragOver(event,'${sec.id}')"
         ondrop="onSecDrop(event,'${sec.id}')">
       <div class="section-head">
-        <div class="sec-drag" title="Drag to reorder">${IC.drag}</div>
+        <div class="sec-drag" title="Drag to reorder" draggable="true"
+          ondragstart="onSecDragStart(event,'${sec.id}')"
+          ondragend="onSecDragEnd(event)">${IC.drag}</div>
         <div class="sec-num">${String(si+1).padStart(2,'0')}</div>
         <div class="sec-title-area">
           <span class="sec-name">${esc(sec.title)}</span>${tag}
@@ -1114,6 +1110,132 @@ async function submitRequest(){
   }
 }
 
+
+// ── Export Google Doc (.docx) ────────────────────────────────────────────────
+function exportDocx(){
+  const docxLib=window.docx;
+  if(!docxLib||!docxLib.Document){
+    showToast('Loading export library — please try again in a moment.','t-brand');
+    const s=document.createElement('script');
+    s.src='https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js';
+    s.onload=()=>setTimeout(_buildDocx,100);
+    document.head.appendChild(s);
+    return;
+  }
+  showToast('Generating document…','t-brand');
+  setTimeout(_buildDocx,50);
+}
+
+function _buildDocx(){
+  try{
+    const{Document,Packer,Paragraph,TextRun,Table,TableRow,TableCell,
+      AlignmentType,BorderStyle,WidthType,ShadingType,VerticalAlign,PageBreak}=window.docx;
+    const B='927150',TAN='EDE8E0',DARK='1A1A1A',MID='8C7B6A',LIGHT='B8A99A',VL='D4CFC5';
+    const W=9026,C1=640,C3=1400,C2=W-C1-C3;
+    const nb={style:BorderStyle.NONE,size:0,color:'FFFFFF'};
+    const nbs={top:nb,bottom:nb,left:nb,right:nb,insideH:nb,insideV:nb};
+    const hairline=(col=VL)=>({top:nb,bottom:{style:BorderStyle.SINGLE,size:3,color:col},left:nb,right:nb,insideH:nb,insideV:nb});
+    const run=(text,o={})=>new TextRun({text:String(text||''),font:o.font||'Georgia',size:o.size||22,bold:!!o.bold,italics:!!o.italic,color:o.color||DARK,allCaps:!!o.caps});
+    const gap=(s=160)=>new Paragraph({spacing:{before:0,after:s}});
+    const urgA=requests.filter(r=>r.urgent&&r.status==='approved');
+    const stdA=requests.filter(r=>!r.urgent&&!r.is_followup&&!r.deferred&&r.status==='approved');
+    const followA=requests.filter(r=>r.is_followup&&r.status==='approved');
+
+    function secHead(num,title,time){
+      return new Table({width:{size:W,type:WidthType.DXA},columnWidths:[C1,C2,C3],borders:hairline(),
+        rows:[new TableRow({children:[
+          new TableCell({borders:nbs,width:{size:C1,type:WidthType.DXA},shading:{fill:TAN,type:ShadingType.CLEAR},
+            margins:{top:120,bottom:120,left:120,right:80},verticalAlign:VerticalAlign.CENTER,
+            children:[new Paragraph({alignment:AlignmentType.LEFT,children:[run(String(num).padStart(2,'0'),{font:'Courier New',size:20,bold:true,color:B})]})]}),
+          new TableCell({borders:nbs,width:{size:C2,type:WidthType.DXA},shading:{fill:TAN,type:ShadingType.CLEAR},
+            margins:{top:120,bottom:120,left:140,right:80},verticalAlign:VerticalAlign.CENTER,
+            children:[new Paragraph({alignment:AlignmentType.LEFT,children:[run(title,{size:24,bold:true})]})]}),
+          new TableCell({borders:nbs,width:{size:C3,type:WidthType.DXA},shading:{fill:TAN,type:ShadingType.CLEAR},
+            margins:{top:120,bottom:120,left:80,right:120},verticalAlign:VerticalAlign.CENTER,
+            children:[new Paragraph({alignment:AlignmentType.RIGHT,children:[run(time,{font:'Courier New',size:17,color:B})]})]}),
+        ]})]});
+    }
+
+    function agItem(text,owner,cat,desc,timeN,files){
+      const C1i=280,C2i=W-C1i;
+      const metaRuns=[];
+      if(owner) metaRuns.push(run(owner,{font:'Courier New',size:16,color:B,italic:true}));
+      if(cat) metaRuns.push(run('   ·   '+cat,{font:'Courier New',size:15,color:MID}));
+      if(timeN) metaRuns.push(run('   ·   '+timeN,{font:'Courier New',size:15,color:MID}));
+      const bodyParas=[
+        new Paragraph({spacing:{before:0,after:metaRuns.length?40:0},children:[run(text,{size:21})]}),
+        ...(metaRuns.length?[new Paragraph({spacing:{before:0,after:desc?50:0},children:metaRuns})]:[]),
+        ...(desc?[new Paragraph({spacing:{before:0,after:files&&files.length?40:0},children:[run(desc,{size:18,italic:true,color:'6B6460'})]})]:[]),
+        ...(files&&files.length?[new Paragraph({spacing:{before:0,after:0},children:files.map((f,fi)=>run((fi?'   ':'')+' 📎 '+f.name+(f.driveUrl?' → '+f.driveUrl:''),{font:'Courier New',size:15,color:B}))})]:[]),
+      ];
+      return new Table({width:{size:W,type:WidthType.DXA},columnWidths:[C1i,C2i],borders:hairline('ECEAE4'),
+        rows:[new TableRow({children:[
+          new TableCell({borders:nbs,width:{size:C1i,type:WidthType.DXA},margins:{top:100,bottom:100,left:80,right:60},verticalAlign:VerticalAlign.TOP,
+            children:[new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:60,after:0},children:[run('—',{font:'Courier New',size:16,color:VL})]})]
+          }),
+          new TableCell({borders:nbs,width:{size:C2i,type:WidthType.DXA},margins:{top:100,bottom:100,left:100,right:80},children:bodyParas}),
+        ]})]});
+    }
+
+    function emptyItem(msg){
+      return new Table({width:{size:W,type:WidthType.DXA},columnWidths:[W],borders:hairline('ECEAE4'),
+        rows:[new TableRow({children:[new TableCell({borders:nbs,width:{size:W,type:WidthType.DXA},
+          margins:{top:100,bottom:100,left:120,right:120},
+          children:[new Paragraph({children:[run(msg,{font:'Courier New',size:17,italic:true,color:'C0B8B0'})]})]})]})]});
+    }
+
+    const cover=[
+      gap(4000),
+      new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:0,after:120},children:[run('DÚKASA',{size:80,bold:true})]}),
+      new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:0,after:2400},children:[run('DISPENSARY',{size:80,bold:true})]}),
+      new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:0,after:0},border:{bottom:{style:BorderStyle.SINGLE,size:4,color:B},space:320},children:[run('')]}),
+      gap(320),
+      new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:0,after:200},children:[run('Managers Meeting — Agenda',{size:30,bold:true,color:B})]}),
+      new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:0,after:0},children:[run(friendlyDate(),{size:24,italic:true,color:MID})]}),
+      gap(200),
+      new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:0,after:0},children:[run('9:00 – 11:00 AM  ·  All Managers',{size:18,color:LIGHT,font:'Courier New'})]}),
+      new Paragraph({children:[new PageBreak()]}),
+    ];
+
+    const body=[
+      new Paragraph({spacing:{before:0,after:240},border:{bottom:{style:BorderStyle.SINGLE,size:4,color:VL}},children:[
+        run('DÚKASA DISPENSARY',{font:'Courier New',size:17,color:B}),
+        run('   ·   Managers Meeting   ·   ',{font:'Courier New',size:17,color:LIGHT}),
+        run(friendlyDate(),{font:'Courier New',size:17,color:MID}),
+      ]}),
+      gap(200),
+    ];
+
+    for(const[si,sec] of liveSections.entries()){
+      const isDyn=sec.type!=='static';
+      const items=sec.type==='urgent'?urgA:sec.type==='submitted'?stdA:sec.type==='followup'?followA:sec.items;
+      body.push(secHead(si+1,sec.title,sec.time),gap(60));
+      if(!items.length) body.push(emptyItem(sec.type==='urgent'?'No urgent items':sec.type==='followup'?'No follow-up items':sec.type==='submitted'?'No approved items':'No items'));
+      else for(const item of items){
+        const owner=item.owner||((item.name||'')+(item.dept?' · '+item.dept:''));
+        body.push(agItem(item.text||item.title,owner,isDyn?item.cat:null,isDyn?(item.description||item.desc):null,isDyn?item.time_needed:null,item.drive_files||[]));
+      }
+      body.push(gap(260));
+    }
+    body.push(new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:400,after:0},border:{top:{style:BorderStyle.SINGLE,size:3,color:VL}},children:[run('Dúkasa Dispensary — Confidential   ·   '+friendlyDate(),{font:'Courier New',size:15,italic:true,color:LIGHT})]}));
+
+    const doc=new Document({
+      styles:{default:{document:{run:{font:'Georgia',size:22,color:DARK}}}},
+      sections:[
+        {properties:{page:{size:{width:11906,height:16838},margin:{top:1440,right:1440,bottom:1440,left:1440}}},children:cover},
+        {properties:{page:{size:{width:11906,height:16838},margin:{top:1134,right:1134,bottom:1134,left:1134}}},children:body},
+      ]
+    });
+    Packer.toBlob(doc).then(blob=>{
+      const a=document.createElement('a');
+      a.href=URL.createObjectURL(blob);
+      a.download=(meetingDate?'Dukasa-Agenda-'+meetingDate:'Dukasa-Agenda')+'.docx';
+      a.click();
+      showToast('Agenda exported — upload to Google Drive → open with Docs.','t-brand');
+    }).catch(e=>{showToast('Export error: '+e.message,'t-urgent');console.error(e);});
+  }catch(e){showToast('Export failed: '+e.message,'t-urgent');console.error(e);}
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // GOOGLE DRIVE INTEGRATION
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1137,8 +1259,13 @@ function saveDriveConfig(){
   if(!cid){document.getElementById('drive-cfg-status').textContent='Client ID required.';return;}
   localStorage.setItem('dukasa-google-client-id',cid);
   if(prefix) localStorage.setItem('dukasa-drive-prefix',prefix);
-  document.getElementById('drive-cfg-status').textContent='Saved — signing in…';
+  document.getElementById('drive-cfg-status').textContent='Saved — opening sign-in…';
+  // Init then immediately request token (triggers Google popup)
   initGoogleDrive();
+  setTimeout(()=>{
+    if(gTokenClient) gTokenClient.requestAccessToken({prompt:'consent'});
+    else setTimeout(()=>{ if(gTokenClient) gTokenClient.requestAccessToken({prompt:'consent'}); },1500);
+  },600);
 }
 
 function initGoogleDrive(){
