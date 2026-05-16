@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Dúkasa Dispensary — Managers Meeting</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.iife.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,600&family=DM+Mono:wght@300;400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -265,6 +265,29 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 .toast.t-ok{background:var(--ok-g)}
 .toast.t-brand{background:var(--brand)}
 
+
+/* Google Drive & file upload */
+.drive-status{display:flex;align-items:center;gap:8px;padding:7px 12px;border-radius:var(--radius);font-family:var(--mono);font-size:11px;margin-bottom:10px;border:1px solid}
+.drive-status.connected{background:var(--ok-l);border-color:var(--ok-m);color:var(--ok-g)}
+.drive-status.disconnected{background:var(--paper-2);border-color:var(--paper-3);color:var(--ink-5)}
+.file-drop-zone{border:2px dashed var(--paper-4);border-radius:var(--radius-lg);padding:24px 16px;text-align:center;cursor:pointer;transition:all .2s;background:#fff;position:relative}
+.file-drop-zone:hover,.file-drop-zone.drag-active{border-color:var(--brand);background:var(--brand-l)}
+.file-drop-zone:hover .dz-upload-icon,.file-drop-zone.drag-active .dz-upload-icon{color:var(--brand)}
+.dz-upload-icon{color:var(--paper-4);margin-bottom:8px;transition:color .2s}
+.file-drop-zone .dz-title{font-family:var(--sans);font-size:14px;font-weight:600;color:var(--ink);margin-bottom:4px}
+.file-drop-zone .dz-sub{font-family:var(--mono);font-size:10px;color:var(--ink-5);letter-spacing:.03em}
+.file-list{display:flex;flex-direction:column;gap:4px;margin-top:8px}
+.file-chip{display:flex;align-items:center;gap:7px;padding:6px 10px;background:#fff;border:1px solid var(--paper-3);border-radius:var(--radius);font-family:var(--mono);font-size:11px;color:var(--ink-3)}
+.file-chip svg{width:12px;height:12px;color:var(--brand);flex-shrink:0}
+.file-chip .fc-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.file-chip .fc-size{color:var(--ink-5);font-size:10px;flex-shrink:0}
+.file-chip .fc-del{border:none;background:none;cursor:pointer;color:var(--ink-5);padding:0 2px;line-height:1;display:flex;align-items:center;flex-shrink:0}
+.file-chip .fc-del:hover{color:var(--urgent-r)}
+.file-chip.uploading{border-color:var(--brand-m);background:var(--brand-l)}
+.file-chip.uploaded{border-color:var(--ok-m);background:var(--ok-l)}
+.attach-link{font-family:var(--mono);font-size:10px;color:var(--brand);padding:1px 6px;border-radius:3px;background:var(--brand-l);border:1px solid var(--brand-m);text-decoration:none;flex-shrink:0}
+.drive-folder-link{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;color:var(--ok-g);text-decoration:none;padding:5px 12px;border-radius:var(--radius);background:var(--ok-l);border:1px solid var(--ok-m)}
+
 @media print{.sidebar,.topbar-actions,.edit-mode-toggle,.sec-actions,.row-actions,.add-row-btn,.add-section-btn,.bsm-delete,.rc-ft,.loading-overlay{display:none!important}.main{margin-left:0}.topbar{position:static}}
 </style>
 </head>
@@ -386,7 +409,13 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
                 </div>
                 <div class="file-drop-zone" id="drop-zone" onclick="document.getElementById('f-files').click()">
                   <input type="file" id="f-files" multiple accept="*/*" onchange="onFilesSelected(this.files)" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none">
-                  <div class="dz-text"><strong>Drag &amp; drop files here</strong> or click to browse</div>
+                  <div class="dz-upload-icon">
+                    <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.2">
+                      <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+                    </svg>
+                  </div>
+                  <div class="dz-title">Drag &amp; drop files here</div>
+                  <div class="dz-sub">or click to browse — any file type accepted</div>
                 </div>
                 <div class="file-list" id="file-list"></div>
               </div>
@@ -823,7 +852,7 @@ async function deleteReq(id){
 }
 
 // ── Drag & drop sections ──────────────────────────────────────────────────
-function onSecDragStart(e,sid){dragSec=sid;e.dataTransfer.effectAllowed='move';document.getElementById('secblock-'+sid).classList.add('dragging');}
+function onSecDragStart(e,sid){dragSec=sid;e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',sid);document.getElementById('secblock-'+sid).classList.add('dragging');}
 function onSecDragEnd(e){document.querySelectorAll('.section-block').forEach(el=>el.classList.remove('dragging'));dragSec=null;}
 function onSecDragOver(e,sid){e.preventDefault();if(dragSec&&dragSec!==sid){document.querySelectorAll('.section-block').forEach(el=>el.classList.remove('drag-over'));document.getElementById('secblock-'+sid).classList.add('drag-over');}}
 function onSecDrop(e,sid){
@@ -838,7 +867,7 @@ function onSecDrop(e,sid){
 }
 
 // ── Drag & drop items ─────────────────────────────────────────────────────
-function onItemDragStart(e,sid,iid){dragItem=iid;dragItemSec=sid;e.dataTransfer.effectAllowed='move';document.getElementById('row-'+sid+'-'+iid).classList.add('dragging-item');}
+function onItemDragStart(e,sid,iid){e.stopPropagation();dragItem=iid;dragItemSec=sid;e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',iid);document.getElementById('row-'+sid+'-'+iid).classList.add('dragging-item');}
 function onItemDragEnd(e){document.querySelectorAll('.agenda-row').forEach(el=>el.classList.remove('dragging-item'));dragItem=null;dragItemSec=null;}
 function onItemDragOver(e,sid,iid){e.preventDefault();if(dragItem&&dragItem!==iid){document.querySelectorAll('.agenda-row').forEach(el=>el.classList.remove('drag-over-item'));const el=document.getElementById('row-'+sid+'-'+iid);if(el)el.classList.add('drag-over-item');}}
 function onItemDrop(e,toSid,toIid){
@@ -1116,7 +1145,7 @@ function exportDocx(){
   if(!docxLib||!docxLib.Document){
     showToast('Loading export library — please try again in a moment.','t-brand');
     const s=document.createElement('script');
-    s.src='https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js';
+    s.src='https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.iife.js';
     s.onload=()=>setTimeout(_buildDocx,100);
     document.head.appendChild(s);
     return;
