@@ -1278,7 +1278,7 @@ function _doExportWord(){
 
     function wTable(rows, bottomColor){
       const bc = bottomColor || 'D4CFC5';
-      return `<w:tbl><w:tblPr><w:tblW w:w="${W}" w:type="dxa"/><w:tblLayout w:type="fixed"/><w:tblBorders><w:top ${NB}/><w:left ${NB}/><w:bottom w:val="single" w:sz="4" w:space="0" w:color="${bc}"/><w:right ${NB}/><w:insideH ${NB}/><w:insideV ${NB}/></w:tblBorders><w:tblCellMar><w:top w:w="60" w:type="dxa"/><w:left w:w="80" w:type="dxa"/><w:bottom w:w="60" w:type="dxa"/><w:right w:w="80" w:type="dxa"/></w:tblCellMar><w:tblLook w:val="0000"/></w:tblPr>${rows}</w:tbl>`;
+      return `<w:tbl><w:tblPr><w:tblW w:w="${W}" w:type="dxa"/><w:tblLayout w:type="fixed"/><w:tblInd w:w="0" w:type="dxa"/><w:tblBorders><w:top ${NB}/><w:left ${NB}/><w:bottom w:val="single" w:sz="4" w:space="0" w:color="${bc}"/><w:right ${NB}/><w:insideH ${NB}/><w:insideV ${NB}/></w:tblBorders><w:tblCellMar><w:top w:w="60" w:type="dxa"/><w:left w:w="80" w:type="dxa"/><w:bottom w:w="60" w:type="dxa"/><w:right w:w="80" w:type="dxa"/></w:tblCellMar><w:tblLook w:val="0000"/></w:tblPr>${rows}</w:tbl>`;
     }
 
     const gap = n => wPara('', {after: n});
@@ -1288,7 +1288,7 @@ function _doExportWord(){
     // 60+80=140 dxa margins per cell side pair, but CELL_MAR is table-level
     // so each cell's full width is available for content minus 160 dxa total margins
     function secHeader(num, title, time){
-      const C1 = 560,  // section number
+      const C1 = 640,  // section number
             C3 = 1440, // time badge
             C2 = W - C1 - C3; // title (fills remaining)
       return [
@@ -1304,7 +1304,7 @@ function _doExportWord(){
     // ── Agenda item ──────────────────────────────────────────────────────────
     // Two columns: narrow left indent | item content
     function agendaItem(text, owner, cat, desc, timeN){
-      const C1 = 320,        // left indent / bullet
+      const C1 = 320,        // left indent
             C2 = W - C1;    // content
 
       const metaRuns = [
@@ -1352,7 +1352,8 @@ function _doExportWord(){
       wPara(wRun('Managers Meeting — Agenda', {pt:17, bold:true, color:'927150'}), {align:'center', after:160}),
       wPara(wRun(dateStr, {pt:13, italic:true, color:'6B6460'}),                   {align:'center', after:120}),
       wPara(wRun('9:00 – 11:00 AM  ·  All Managers', {font:'Courier New', pt:10, color:'B8A99A'}), {align:'center', after:0}),
-      wPara('', {pageBreak:true, after:0}),
+      // page break as explicit run
+      `<w:p><w:r><w:rPr><w:sz w:val="2"/><w:szCs w:val="2"/></w:rPr><w:br w:type="page"/></w:r></w:p>`,
     ].join('');
 
     // ── Agenda body ───────────────────────────────────────────────────────────
