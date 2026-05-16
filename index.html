@@ -1233,227 +1233,241 @@ function _doExportWord(){
   try {
     showToast('Generating Word document…','t-brand');
 
-    // ── XML helpers ────────────────────────────────────────────────────────
-    // NOTE: w:sz uses half-points. wRun takes pt values and doubles them.
+    // ── Page geometry ────────────────────────────────────────────────────────
+    // A4: 11906 dxa wide. Margins: 1134 dxa (2cm) each side.
+    // Available content width = 11906 - 1134 - 1134 = 9638 dxa.
+    // We use 9500 dxa for tables (leaves a tiny safe margin for renderers).
+    const W = 9500;
+
+    // ── XML helpers ──────────────────────────────────────────────────────────
     function xmlEsc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
-    // pt = points (will be doubled for w:sz)
+    // pt = typographic points. w:sz uses half-points, so multiply by 2.
     function wRun(text, o={}){
-      const sz = o.pt ? o.pt*2 : 22; // default 11pt body
-      const rpr=[
+      const sz = (o.pt||11)*2;
+      const rpr = [
         `<w:sz w:val="${sz}"/><w:szCs w:val="${sz}"/>`,
-        o.bold  ? '<w:b/><w:bCs/>' : '',
-        o.italic? '<w:i/><w:iCs/>' : '',
-        o.color ? `<w:color w:val="${o.color}"/>` : '<w:color w:val="1A1A1A"/>',
-        o.font  ? `<w:rFonts w:ascii="${o.font}" w:hAnsi="${o.font}" w:cs="${o.font}"/>` : '',
+        o.bold   ? '<w:b/><w:bCs/>'   : '',
+        o.italic ? '<w:i/><w:iCs/>'   : '',
+        `<w:color w:val="${o.color||'1A1A1A'}"/>`,
+        o.font   ? `<w:rFonts w:ascii="${o.font}" w:hAnsi="${o.font}" w:cs="${o.font}"/>` : '',
       ].join('');
       return `<w:r><w:rPr>${rpr}</w:rPr><w:t xml:space="preserve">${xmlEsc(text)}</w:t></w:r>`;
     }
 
-    // spacing values are in twips (20 twips = 1pt)
+    // before/after in twips (20 twips = 1 point)
     function wPara(runs, o={}){
-      const spacing = `<w:spacing w:before="${o.before||0}" w:after="${o.after!==undefined?o.after:160}"/>`;
-      const ppr=[
+      const ppr = [
         o.align        ? `<w:jc w:val="${o.align}"/>` : '',
-        spacing,
+        `<w:spacing w:before="${o.before||0}" w:after="${o.after!==undefined ? o.after : 0}"/>`,
         o.borderBottom ? `<w:pBdr><w:bottom w:val="single" w:sz="6" w:space="4" w:color="D4CFC5"/></w:pBdr>` : '',
         o.pageBreak    ? '<w:pageBreakBefore/>' : '',
-        o.indent       ? `<w:ind w:left="${o.indent}"/>` : '',
-      ].filter(Boolean).join('');
+      ].join('');
       return `<w:p><w:pPr>${ppr}</w:pPr>${runs||''}</w:p>`;
     }
 
-    const NB = 'w:val="none" w:sz="0" w:space="0" w:color="auto"';
-    const NOBORDER = `<w:top ${NB}/><w:left ${NB}/><w:bottom ${NB}/><w:right ${NB}/>`;
+    const NB = `w:val="none" w:sz="0" w:space="0" w:color="auto"`;
 
-    function wCell(content, width, opts={}){
-      const shade = opts.shade ? `<w:shd w:val="clear" w:color="auto" w:fill="${opts.shade}"/>` : '';
-      const mar = `<w:tblCellMar>
-        <w:top w:w="80" w:type="dxa"/>
-        <w:left w:w="160" w:type="dxa"/>
-        <w:bottom w:w="80" w:type="dxa"/>
-        <w:right w:w="160" w:type="dxa"/>
-      </w:tblCellMar>`;
-      const valign = opts.valign ? `<w:vAlign w:val="${opts.valign}"/>` : '<w:vAlign w:val="center"/>';
+    // Cell margins live at TABLE level (tblCellMar) so they don't
+    // eat into individual cell widths per-cell. 60 dxa = ~1mm padding.
+    const CELL_MAR = `<w:tblCellMar>
+      <w:top    w:w="60"  w:type="dxa"/>
+      <w:left   w:w="80"  w:type="dxa"/>
+      <w:bottom w:w="60"  w:type="dxa"/>
+      <w:right  w:w="80"  w:type="dxa"/>
+    </w:tblCellMar>`;
+
+    function wCell(content, width, shade){
+      // shade is a hex fill colour string, or null/undefined
       return `<w:tc><w:tcPr>
         <w:tcW w:w="${width}" w:type="dxa"/>
-        <w:tcBorders>${NOBORDER}</w:tcBorders>
-        ${shade}${valign}${mar}
+        <w:tcBorders><w:top ${NB}/><w:left ${NB}/><w:bottom ${NB}/><w:right ${NB}/></w:tcBorders>
+        ${shade ? `<w:shd w:val="clear" w:color="auto" w:fill="${shade}"/>` : ''}
+        <w:vAlign w:val="center"/>
       </w:tcPr>${content}</w:tc>`;
     }
 
-    function wTable(rows, opts={}){
-      const W = opts.width || 9026;
-      const bottomColor = opts.bottomColor || 'D4CFC5';
-      const tblBorder = `<w:tblBorders>
-        <w:top ${NB}/>
-        <w:left ${NB}/>
-        <w:bottom w:val="single" w:sz="4" w:space="0" w:color="${bottomColor}"/>
-        <w:right ${NB}/>
-        <w:insideH ${NB}/>
-        <w:insideV ${NB}/>
-      </w:tblBorders>`;
-      const spacing = `<w:tblCellSpacing w:w="0" w:type="dxa"/>`;
+    function wTable(rows, bottomColor){
       return `<w:tbl><w:tblPr>
         <w:tblW w:w="${W}" w:type="dxa"/>
         <w:tblLayout w:type="fixed"/>
-        ${tblBorder}
+        <w:tblBorders>
+          <w:top ${NB}/><w:left ${NB}/>
+          <w:bottom w:val="single" w:sz="4" w:space="0" w:color="${bottomColor||'D4CFC5'}"/>
+          <w:right ${NB}/><w:insideH ${NB}/><w:insideV ${NB}/>
+        </w:tblBorders>
+        ${CELL_MAR}
         <w:tblLook w:val="0000"/>
       </w:tblPr>${rows}</w:tbl>`;
     }
 
-    // ── Section header ─────────────────────────────────────────────────────
+    const gap = n => wPara('', {after: n});
+
+    // ── Section header ───────────────────────────────────────────────────────
+    // Three columns: number | title | time
+    // 60+80=140 dxa margins per cell side pair, but CELL_MAR is table-level
+    // so each cell's full width is available for content minus 160 dxa total margins
     function secHeader(num, title, time){
-      const C1=600, C3=1440, C2=9026-C1-C3;
+      const C1 = 560,  // section number
+            C3 = 1440, // time badge
+            C2 = W - C1 - C3; // title (fills remaining)
       return [
         wTable(`<w:tr>
-          ${wCell(wPara(wRun(String(num).padStart(2,'0'),{font:'Courier New',pt:11,bold:true,color:'927150'}),{align:'center',before:100,after:100}), C1, {shade:'EDE8E0'})}
-          ${wCell(wPara(wRun(title,{pt:12,bold:true,color:'1A1A1A'}),{before:100,after:100}), C2, {shade:'EDE8E0'})}
-          ${wCell(wPara(wRun(time,{font:'Courier New',pt:10,color:'927150'}),{align:'right',before:100,after:100}), C3, {shade:'EDE8E0'})}
-        </w:tr>`, {bottomColor:'C8C3BB'}),
-        wPara('',{after:60}),
+          ${wCell(wPara(wRun(String(num).padStart(2,'0'), {font:'Courier New', pt:11, bold:true, color:'927150'}), {align:'center', before:60, after:60}), C1, 'EDE8E0')}
+          ${wCell(wPara(wRun(title, {pt:12, bold:true, color:'1A1A1A'}), {before:60, after:60}), C2, 'EDE8E0')}
+          ${wCell(wPara(wRun(time,  {font:'Courier New', pt:10, color:'927150'}), {align:'right', before:60, after:60}), C3, 'EDE8E0')}
+        </w:tr>`, 'C8C3BB'),
+        gap(80),
       ].join('');
     }
 
-    // ── Agenda item row ────────────────────────────────────────────────────
+    // ── Agenda item ──────────────────────────────────────────────────────────
+    // Two columns: narrow left indent | item content
     function agendaItem(text, owner, cat, desc, timeN){
-      const metaRuns=[
-        owner ? wRun(owner,{font:'Courier New',pt:9,italic:true,color:'927150'}) : '',
-        cat   ? wRun('   ·   '+cat, {font:'Courier New',pt:9,color:'8C7B6A'}) : '',
-        timeN ? wRun('   ·   '+timeN,{font:'Courier New',pt:9,color:'8C7B6A'}) : '',
+      const C1 = 320,        // left indent / bullet
+            C2 = W - C1;    // content
+
+      const metaRuns = [
+        owner ? wRun(owner, {font:'Courier New', pt:9, italic:true, color:'927150'}) : '',
+        cat   ? wRun('   ·   '+cat,   {font:'Courier New', pt:9, color:'8C7B6A'}) : '',
+        timeN ? wRun('   ·   '+timeN, {font:'Courier New', pt:9, color:'8C7B6A'}) : '',
       ].filter(Boolean).join('');
-      const body=[
-        wPara(wRun(text,{pt:11,color:'1A1A1A'}),{after:metaRuns?40:0}),
-        ...(metaRuns ? [wPara(metaRuns,{after:desc?40:0})] : []),
-        ...(desc     ? [wPara(wRun(desc,{pt:10,italic:true,color:'6B6460'}),{after:0})] : []),
+
+      const bodyParas = [
+        wPara(wRun(text, {pt:11, color:'1A1A1A'}), {after: metaRuns ? 40 : 0}),
+        ...(metaRuns ? [wPara(metaRuns, {after: desc ? 40 : 0})] : []),
+        ...(desc     ? [wPara(wRun(desc, {pt:10, italic:true, color:'6B6460'}), {after:0})] : []),
       ].join('');
+
       return [
         wTable(`<w:tr>
-          ${wCell(wPara(wRun('',{}),{after:0}), 240, {})}
-          ${wCell(body, 8786, {})}
-        </w:tr>`, {bottomColor:'E4E0D8'}),
-        wPara('',{after:0}),
+          ${wCell(gap(0), C1, null)}
+          ${wCell(bodyParas, C2, null)}
+        </w:tr>`, 'E4E0D8'),
+        gap(0),
       ].join('');
     }
 
     function emptyItem(msg){
       return [
         wTable(`<w:tr>
-          ${wCell(wPara(wRun(msg,{font:'Courier New',pt:9,italic:true,color:'B0A898'}),{after:0}), 9026, {})}
-        </w:tr>`, {bottomColor:'E4E0D8'}),
-        wPara('',{after:0}),
+          ${wCell(wPara(wRun(msg, {font:'Courier New', pt:9, italic:true, color:'B0A898'}), {after:0}), W, null)}
+        </w:tr>`, 'E4E0D8'),
+        gap(0),
       ].join('');
     }
 
-    // ── Data ───────────────────────────────────────────────────────────────
-    const urgA   = requests.filter(r=>r.urgent&&r.status==='approved');
-    const stdA   = requests.filter(r=>!r.urgent&&!r.is_followup&&!r.deferred&&r.status==='approved');
-    const followA= requests.filter(r=>r.is_followup&&r.status==='approved');
-    const dateStr= friendlyDate();
+    // ── Data ─────────────────────────────────────────────────────────────────
+    const urgA    = requests.filter(r => r.urgent && r.status==='approved');
+    const stdA    = requests.filter(r => !r.urgent && !r.is_followup && !r.deferred && r.status==='approved');
+    const followA = requests.filter(r => r.is_followup && r.status==='approved');
+    const dateStr = friendlyDate();
 
-    // ── Cover page ─────────────────────────────────────────────────────────
-    const cover=[
-      wPara('',{after:2800}),
-      wPara(wRun('DÚKASA',    {pt:36,bold:true,color:'1A1A1A'}),{align:'center',after:0}),
-      wPara(wRun('DISPENSARY',{pt:36,bold:true,color:'1A1A1A'}),{align:'center',after:1200}),
-      wPara('',{align:'center',before:0,after:0,borderBottom:true}),
-      wPara('',{after:280}),
-      wPara(wRun('Managers Meeting — Agenda',{pt:16,bold:true,color:'927150'}),{align:'center',after:140}),
-      wPara(wRun(dateStr,{pt:12,italic:true,color:'6B6460'}),{align:'center',after:100}),
-      wPara(wRun('9:00 – 11:00 AM  ·  All Managers',{font:'Courier New',pt:9,color:'B8A99A'}),{align:'center',after:0}),
+    // ── Cover page ────────────────────────────────────────────────────────────
+    const cover = [
+      gap(2800),
+      wPara(wRun('DÚKASA',     {pt:40, bold:true, color:'1A1A1A'}), {align:'center', after:0}),
+      wPara(wRun('DISPENSARY', {pt:40, bold:true, color:'1A1A1A'}), {align:'center', after:1000}),
+      wPara('', {borderBottom:true, after:320}),
+      wPara(wRun('Managers Meeting — Agenda', {pt:17, bold:true, color:'927150'}), {align:'center', after:160}),
+      wPara(wRun(dateStr, {pt:13, italic:true, color:'6B6460'}),                   {align:'center', after:120}),
+      wPara(wRun('9:00 – 11:00 AM  ·  All Managers', {font:'Courier New', pt:10, color:'B8A99A'}), {align:'center', after:0}),
+      wPara('', {pageBreak:true, after:0}),
     ].join('');
 
-    // ── Agenda body ────────────────────────────────────────────────────────
-    const body=[
+    // ── Agenda body ───────────────────────────────────────────────────────────
+    const body = [
       wPara(
-        wRun('DÚKASA DISPENSARY',{font:'Courier New',pt:9,bold:true,color:'927150'})+
-        wRun('   ·   Managers Meeting Agenda   ·   ',{font:'Courier New',pt:9,color:'C0B8B0'})+
-        wRun(dateStr,{font:'Courier New',pt:9,color:'8C7B6A'}),
-        {borderBottom:true,after:240}
+        wRun('DÚKASA DISPENSARY',                    {font:'Courier New', pt:9, bold:true, color:'927150'}) +
+        wRun('   ·   Managers Meeting Agenda   ·   ', {font:'Courier New', pt:9, color:'C0B8B0'}) +
+        wRun(dateStr,                                 {font:'Courier New', pt:9, color:'8C7B6A'}),
+        {borderBottom:true, after:240}
       ),
-      wPara('',{after:80}),
+      gap(100),
     ];
 
-    for(const [si,sec] of liveSections.entries()){
-      const isDyn = sec.type!=='static';
-      const items = sec.type==='urgent' ? urgA :
-                    sec.type==='submitted' ? stdA :
-                    sec.type==='followup'  ? followA : sec.items;
+    for(const [si, sec] of liveSections.entries()){
+      const isDyn  = sec.type !== 'static';
+      const items  = sec.type==='urgent'    ? urgA    :
+                     sec.type==='submitted' ? stdA    :
+                     sec.type==='followup'  ? followA : sec.items;
+
       body.push(secHeader(si+1, sec.title, sec.time));
+
       if(!items.length){
         body.push(emptyItem(
-          sec.type==='urgent'    ? 'No urgent items' :
+          sec.type==='urgent'    ? 'No urgent items'    :
           sec.type==='followup'  ? 'No follow-up items' :
-          sec.type==='submitted' ? 'No approved items' : 'No items'
+          sec.type==='submitted' ? 'No approved items'  : 'No items'
         ));
       } else {
         for(const item of items){
-          const owner = item.owner||((item.name||'')+(item.dept?' · '+item.dept:''));
+          const owner = item.owner || ((item.name||'') + (item.dept ? ' · '+item.dept : ''));
           body.push(agendaItem(
-            item.text||item.title||'', owner,
-            isDyn ? item.cat         : null,
-            isDyn ? (item.description||item.desc) : null,
-            isDyn ? item.time_needed : null
+            item.text||item.title||'',
+            owner,
+            isDyn ? item.cat                         : null,
+            isDyn ? (item.description||item.desc)    : null,
+            isDyn ? item.time_needed                 : null
           ));
         }
       }
-      body.push(wPara('',{after:280}));
+      body.push(gap(300));
     }
 
     body.push(wPara(
-      wRun('Dúkasa Dispensary — Confidential   ·   '+dateStr,{font:'Courier New',pt:9,italic:true,color:'C0B8B0'}),
-      {align:'center',before:400,after:0}
+      wRun('Dúkasa Dispensary — Confidential   ·   ' + dateStr,
+           {font:'Courier New', pt:9, italic:true, color:'C0B8B0'}),
+      {align:'center', before:400, after:0}
     ));
 
-    // ── Assemble XML ───────────────────────────────────────────────────────
-    const documentXml=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+    // ── Assemble XML ──────────────────────────────────────────────────────────
+    const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
             xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
 <w:body>
-${cover}
-<w:p><w:pPr><w:pageBreakBefore/><w:sectPr>
-  <w:pgSz w:w="11906" w:h="16838"/>
-  <w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="0" w:footer="0"/>
-</w:sectPr></w:pPr></w:p>
-${body.join('')}
+${cover}${body.join('')}
 <w:sectPr>
-  <w:pgSz w:w="11906" w:h="16838"/>
-  <w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134" w:header="0" w:footer="0"/>
+  <w:pgSz w:w="11906" w:h="16838" w:orient="portrait"/>
+  <w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134"
+           w:header="0" w:footer="0" w:gutter="0"/>
 </w:sectPr>
 </w:body>
 </w:document>`;
 
-    // ── Build ZIP ──────────────────────────────────────────────────────────
-    const zip=new JSZip();
-    zip.file('[Content_Types].xml',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/></Types>`);
-    zip.folder('_rels').file('.rels',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>`);
-    zip.folder('word/_rels').file('document.xml.rels',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`);
-    zip.folder('word').file('styles.xml',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
-          xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml">
+    const stylesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
   <w:docDefaults>
     <w:rPrDefault><w:rPr>
       <w:rFonts w:ascii="Georgia" w:hAnsi="Georgia" w:cs="Georgia"/>
       <w:sz w:val="22"/><w:szCs w:val="22"/>
       <w:color w:val="1A1A1A"/>
-      <w:lang w:val="en-AU" w:eastAsia="en-AU" w:bidi="ar-SA"/>
+      <w:lang w:val="en-AU"/>
     </w:rPr></w:rPrDefault>
     <w:pPrDefault><w:pPr>
-      <w:spacing w:after="160" w:line="276" w:lineRule="auto"/>
+      <w:spacing w:after="0" w:line="276" w:lineRule="auto"/>
     </w:pPr></w:pPrDefault>
   </w:docDefaults>
-</w:styles>`);
+</w:styles>`;
+
+    // ── Build ZIP ─────────────────────────────────────────────────────────────
+    const zip = new JSZip();
+    zip.file('[Content_Types].xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/></Types>`);
+    zip.folder('_rels').file('.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>`);
+    zip.folder('word/_rels').file('document.xml.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`);
+    zip.folder('word').file('styles.xml', stylesXml);
     zip.folder('word').file('document.xml', documentXml);
 
-    zip.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'})
-      .then(blob=>{
-        const a=document.createElement('a');
-        a.href=URL.createObjectURL(blob);
-        a.download=(meetingDate?'Dukasa-Agenda-'+meetingDate:'Dukasa-Agenda')+'.docx';
+    zip.generateAsync({type:'blob', mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'})
+      .then(blob => {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = (meetingDate ? 'Dukasa-Agenda-'+meetingDate : 'Dukasa-Agenda') + '.docx';
         a.click();
-        showToast('Word document ready — open in Word, or upload to Google Drive and open as Google Doc.','t-ok');
-      }).catch(e=>{ showToast('Export error: '+e.message,'t-urgent'); console.error(e); });
-  } catch(e){ showToast('Export failed: '+e.message,'t-urgent'); console.error(e); }
+        showToast('Word document ready — open in Word or upload to Google Drive → open as Google Doc.', 't-ok');
+      }).catch(e => { showToast('Export error: '+e.message, 't-urgent'); console.error(e); });
+
+  } catch(e){ showToast('Export failed: '+e.message, 't-urgent'); console.error(e); }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
