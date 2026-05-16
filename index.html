@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Dúkasa Dispensary — Managers Meeting</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.iife.js"></script>
+<!-- docx library removed — export uses built-in print API -->
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,600&family=DM+Mono:wght@300;400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -286,6 +286,13 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 .file-chip.uploading{border-color:var(--brand-m);background:var(--brand-l)}
 .file-chip.uploaded{border-color:var(--ok-m);background:var(--ok-l)}
 .attach-link{font-family:var(--mono);font-size:10px;color:var(--brand);padding:1px 6px;border-radius:3px;background:var(--brand-l);border:1px solid var(--brand-m);text-decoration:none;flex-shrink:0}
+.db-edit-form{display:none;padding:10px 14px 12px;border-top:1px solid var(--paper-2);background:var(--paper-2);flex-direction:column;gap:8px}
+.db-edit-form.open{display:flex}
+.db-edit-form input,.db-edit-form select,.db-edit-form textarea{border:1px solid var(--paper-3);border-radius:var(--radius);padding:7px 10px;font-family:var(--sans);font-size:13px;color:var(--ink);background:#fff;outline:none;width:100%;transition:border-color .15s}
+.db-edit-form input:focus,.db-edit-form select:focus,.db-edit-form textarea:focus{border-color:var(--brand)}
+.db-edit-form textarea{resize:vertical;min-height:60px}
+.db-edit-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.db-edit-actions{display:flex;gap:6px;justify-content:flex-end;margin-top:2px}
 .drive-folder-link{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;color:var(--ok-g);text-decoration:none;padding:5px 12px;border-radius:var(--radius);background:var(--ok-l);border:1px solid var(--ok-m)}
 
 @media print{.sidebar,.topbar-actions,.edit-mode-toggle,.sec-actions,.row-actions,.add-row-btn,.add-section-btn,.bsm-delete,.rc-ft,.loading-overlay{display:none!important}.main{margin-left:0}.topbar{position:static}}
@@ -349,12 +356,13 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
         <button class="btn btn-ghost" onclick="window.print()" id="print-btn">
           <svg fill="none" viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.5"><path d="M4 5V2h8v3M3 5h10a1 1 0 011 1v5H2V6a1 1 0 011-1zM4 11v3h8v-3"/></svg>Print
         </button>
-        <button class="btn btn-ghost" onclick="exportPDFPack()" id="pdf-pack-btn" style="border-color:var(--urgent-m);color:var(--urgent-r)">
+        <button class="btn btn-ghost" onclick="exportPDFPack()" id="pdf-pack-btn">
           <svg fill="none" viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.5"><path d="M2 12h12M5 12L2 7h4l1-4 3 4h4l-3 5z"/></svg>
-          PDF to Drive
+          Save to Drive
         </button>
-        <button class="btn btn-brand" onclick="exportDocx()">
-          <svg fill="none" viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.5"><path d="M9 2H4a1 1 0 00-1 1v10a1 1 0 001 1h8a1 1 0 001-1V6M9 2l4 4M9 2v4h4"/></svg>Export Google Doc
+        <button class="btn btn-brand" onclick="exportPrint()">
+          <svg fill="none" viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.5"><path d="M4 5V2h8v3M3 5h10a1 1 0 011 1v5H2V6a1 1 0 011-1zM4 11v3h8v-3"/></svg>
+          Export / Print
         </button>
       </div>
     </header>
@@ -790,26 +798,45 @@ function deleteItem(sid,iid){
 
 // ── DB request inline edit ────────────────────────────────────────────────
 function openDBItemEdit(e, id){
-  // Simple prompt-based edit for DB items
+  e.stopPropagation();
+  // Close any other open DB edit forms
+  document.querySelectorAll('.db-edit-form.open').forEach(el=>el.classList.remove('open'));
+  const formEl = document.getElementById('db-edit-'+id);
+  if(!formEl){ renderAgenda(); setTimeout(()=>openDBItemEdit(e,id),60); return; }
+  formEl.classList.add('open');
+  formEl.querySelector('input')?.focus();
+}
+
+async function saveDBItemEdit(id){
+  if(!db) return;
   const req = requests.find(r=>r.id===id);
   if(!req) return;
-  const newTitle = prompt('Edit item title:', req.title);
-  if(newTitle===null) return;
-  const newOwner = prompt('Edit owner/role:', req.name+(req.dept?' · '+req.dept:''));
-  if(newOwner===null) return;
-  const newDesc = prompt('Edit description (optional):', req.description||'');
-  if(!db) return;
-  db.from('agenda_requests').update({
-    title: newTitle.trim()||req.title,
-    name: newOwner.trim()||req.name,
-    description: newDesc.trim()||null
-  }).eq('id',id).then(({error})=>{
-    if(!error){
-      const i=requests.findIndex(r=>r.id===id);
-      if(i>-1){requests[i].title=newTitle||req.title;requests[i].name=newOwner||req.name;requests[i].description=newDesc||null;}
-      renderAgenda();renderBoard();showToast('Item updated.','t-ok');
-    }
-  });
+  const title = document.getElementById('dbe-title-'+id)?.value.trim();
+  const name  = document.getElementById('dbe-name-'+id)?.value.trim();
+  const dept  = document.getElementById('dbe-dept-'+id)?.value.trim();
+  const cat   = document.getElementById('dbe-cat-'+id)?.value;
+  const desc  = document.getElementById('dbe-desc-'+id)?.value.trim();
+  const time  = document.getElementById('dbe-time-'+id)?.value;
+  const updates = {
+    title: title||req.title,
+    name:  name||req.name,
+    dept:  dept||null,
+    cat:   cat||req.cat,
+    description: desc||null,
+    time_needed: time||req.time_needed
+  };
+  const {error} = await db.from('agenda_requests').update(updates).eq('id',id);
+  if(!error){
+    const i=requests.findIndex(r=>r.id===id);
+    if(i>-1) Object.assign(requests[i], updates);
+    document.getElementById('db-edit-'+id)?.classList.remove('open');
+    renderAgenda(); renderBoard();
+    showToast('Item updated.','t-ok');
+  } else { showToast('Update failed: '+error.message,'t-urgent'); }
+}
+
+function cancelDBItemEdit(id){
+  document.getElementById('db-edit-'+id)?.classList.remove('open');
 }
 async function approveReq(id){
   if(!db)return;
@@ -954,7 +981,7 @@ function renderAgenda(){
             </div>
             <div class="row-actions">
               ${!isDynamic?`<button class="icon-btn" onclick="openItemEditFn('${sec.id}','${item.id}')" title="Edit">${IC.edit}</button>`:''}
-              ${isDynamic?`<button class="icon-btn" onclick="openDBItemEdit(event,'${item.id}')" title="Edit">${IC.edit}</button>`:''}
+              ${isDBItem?`<button class="icon-btn" onclick="openDBItemEdit(event,'${item.id}')" title="Edit">${IC.edit}</button>`:''}
               <button class="icon-btn danger" onclick="${isDBItem?`deleteReq('${item.id}')`:`deleteItem('${sec.id}','${item.id}')`}" title="Remove">${IC.trash}</button>
             </div>
           </div>
@@ -967,6 +994,30 @@ function renderAgenda(){
             <div class="row-edit-actions">
               <button class="btn-sm bsm-unapprove" onclick="document.getElementById('item-edit-${sec.id}-${item.id}').classList.remove('open')">Cancel</button>
               <button class="btn-sm bsm-approve" onclick="saveItemEdit('${sec.id}','${item.id}')">${IC.check} Save</button>
+            </div>
+          </div>`:''}
+          ${isDBItem?`<div class="db-edit-form" id="db-edit-${item.id}">
+            <div><div class="field-label">Title</div><input id="dbe-title-${item.id}" value="${esc(item.title||'')}"></div>
+            <div class="db-edit-grid">
+              <div><div class="field-label">Submitted by</div><input id="dbe-name-${item.id}" value="${esc(item.name||'')}"></div>
+              <div><div class="field-label">Department / role</div><input id="dbe-dept-${item.id}" value="${esc(item.dept||'')}"></div>
+            </div>
+            <div class="db-edit-grid">
+              <div><div class="field-label">Category</div>
+                <select id="dbe-cat-${item.id}">
+                  ${['Update','Discussion','Decision required','Announcement','Other'].map(o=>`<option value="${o}" ${item.cat===o?'selected':''}>${o}</option>`).join('')}
+                </select>
+              </div>
+              <div><div class="field-label">Time needed</div>
+                <select id="dbe-time-${item.id}">
+                  ${['5 min','10 min','15 min','20 min','30 min'].map(o=>`<option value="${o}" ${item.time_needed===o?'selected':''}>${o}</option>`).join('')}
+                </select>
+              </div>
+            </div>
+            <div><div class="field-label">Description / context</div><textarea id="dbe-desc-${item.id}">${esc(item.description||'')}</textarea></div>
+            <div class="db-edit-actions">
+              <button class="btn-sm bsm-unapprove" onclick="cancelDBItemEdit('${item.id}')">Cancel</button>
+              <button class="btn-sm bsm-approve" onclick="saveDBItemEdit('${item.id}')">${IC.check} Save changes</button>
             </div>
           </div>`:''}`;
         }).join('');
@@ -1139,130 +1190,21 @@ async function submitRequest(){
 }
 
 
-// ── Export Google Doc (.docx) ────────────────────────────────────────────────
-function exportDocx(){
-  const docxLib=window.docx;
-  if(!docxLib||!docxLib.Document){
-    showToast('Loading export library — please try again in a moment.','t-brand');
-    const s=document.createElement('script');
-    s.src='https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.iife.js';
-    s.onload=()=>setTimeout(_buildDocx,100);
-    document.head.appendChild(s);
-    return;
-  }
-  showToast('Generating document…','t-brand');
-  setTimeout(_buildDocx,50);
+// ── Export / Print ───────────────────────────────────────────────────────────
+function exportPrint(){
+  showToast('Opening print view…','t-brand');
+  const html = buildAgendaPDFHtml();
+  const win = window.open('','_blank','width=900,height=700');
+  if(!win){ showToast('Pop-up blocked — please allow pop-ups for this site.','t-urgent'); return; }
+  win.document.write(html);
+  win.document.close();
+  win.focus();
+  // Give fonts time to load before printing
+  setTimeout(()=>win.print(), 1200);
 }
 
-function _buildDocx(){
-  try{
-    const{Document,Packer,Paragraph,TextRun,Table,TableRow,TableCell,
-      AlignmentType,BorderStyle,WidthType,ShadingType,VerticalAlign,PageBreak}=window.docx;
-    const B='927150',TAN='EDE8E0',DARK='1A1A1A',MID='8C7B6A',LIGHT='B8A99A',VL='D4CFC5';
-    const W=9026,C1=640,C3=1400,C2=W-C1-C3;
-    const nb={style:BorderStyle.NONE,size:0,color:'FFFFFF'};
-    const nbs={top:nb,bottom:nb,left:nb,right:nb,insideH:nb,insideV:nb};
-    const hairline=(col=VL)=>({top:nb,bottom:{style:BorderStyle.SINGLE,size:3,color:col},left:nb,right:nb,insideH:nb,insideV:nb});
-    const run=(text,o={})=>new TextRun({text:String(text||''),font:o.font||'Georgia',size:o.size||22,bold:!!o.bold,italics:!!o.italic,color:o.color||DARK,allCaps:!!o.caps});
-    const gap=(s=160)=>new Paragraph({spacing:{before:0,after:s}});
-    const urgA=requests.filter(r=>r.urgent&&r.status==='approved');
-    const stdA=requests.filter(r=>!r.urgent&&!r.is_followup&&!r.deferred&&r.status==='approved');
-    const followA=requests.filter(r=>r.is_followup&&r.status==='approved');
-
-    function secHead(num,title,time){
-      return new Table({width:{size:W,type:WidthType.DXA},columnWidths:[C1,C2,C3],borders:hairline(),
-        rows:[new TableRow({children:[
-          new TableCell({borders:nbs,width:{size:C1,type:WidthType.DXA},shading:{fill:TAN,type:ShadingType.CLEAR},
-            margins:{top:120,bottom:120,left:120,right:80},verticalAlign:VerticalAlign.CENTER,
-            children:[new Paragraph({alignment:AlignmentType.LEFT,children:[run(String(num).padStart(2,'0'),{font:'Courier New',size:20,bold:true,color:B})]})]}),
-          new TableCell({borders:nbs,width:{size:C2,type:WidthType.DXA},shading:{fill:TAN,type:ShadingType.CLEAR},
-            margins:{top:120,bottom:120,left:140,right:80},verticalAlign:VerticalAlign.CENTER,
-            children:[new Paragraph({alignment:AlignmentType.LEFT,children:[run(title,{size:24,bold:true})]})]}),
-          new TableCell({borders:nbs,width:{size:C3,type:WidthType.DXA},shading:{fill:TAN,type:ShadingType.CLEAR},
-            margins:{top:120,bottom:120,left:80,right:120},verticalAlign:VerticalAlign.CENTER,
-            children:[new Paragraph({alignment:AlignmentType.RIGHT,children:[run(time,{font:'Courier New',size:17,color:B})]})]}),
-        ]})]});
-    }
-
-    function agItem(text,owner,cat,desc,timeN,files){
-      const C1i=280,C2i=W-C1i;
-      const metaRuns=[];
-      if(owner) metaRuns.push(run(owner,{font:'Courier New',size:16,color:B,italic:true}));
-      if(cat) metaRuns.push(run('   ·   '+cat,{font:'Courier New',size:15,color:MID}));
-      if(timeN) metaRuns.push(run('   ·   '+timeN,{font:'Courier New',size:15,color:MID}));
-      const bodyParas=[
-        new Paragraph({spacing:{before:0,after:metaRuns.length?40:0},children:[run(text,{size:21})]}),
-        ...(metaRuns.length?[new Paragraph({spacing:{before:0,after:desc?50:0},children:metaRuns})]:[]),
-        ...(desc?[new Paragraph({spacing:{before:0,after:files&&files.length?40:0},children:[run(desc,{size:18,italic:true,color:'6B6460'})]})]:[]),
-        ...(files&&files.length?[new Paragraph({spacing:{before:0,after:0},children:files.map((f,fi)=>run((fi?'   ':'')+' – '+f.name+(f.driveUrl?' → '+f.driveUrl:''),{font:'Courier New',size:15,color:B}))})]:[]),
-      ];
-      return new Table({width:{size:W,type:WidthType.DXA},columnWidths:[C1i,C2i],borders:hairline('ECEAE4'),
-        rows:[new TableRow({children:[
-          new TableCell({borders:nbs,width:{size:C1i,type:WidthType.DXA},margins:{top:100,bottom:100,left:80,right:60},verticalAlign:VerticalAlign.TOP,
-            children:[new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:60,after:0},children:[run('—',{font:'Courier New',size:16,color:VL})]})]
-          }),
-          new TableCell({borders:nbs,width:{size:C2i,type:WidthType.DXA},margins:{top:100,bottom:100,left:100,right:80},children:bodyParas}),
-        ]})]});
-    }
-
-    function emptyItem(msg){
-      return new Table({width:{size:W,type:WidthType.DXA},columnWidths:[W],borders:hairline('ECEAE4'),
-        rows:[new TableRow({children:[new TableCell({borders:nbs,width:{size:W,type:WidthType.DXA},
-          margins:{top:100,bottom:100,left:120,right:120},
-          children:[new Paragraph({children:[run(msg,{font:'Courier New',size:17,italic:true,color:'C0B8B0'})]})]})]})]});
-    }
-
-    const cover=[
-      gap(4000),
-      new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:0,after:120},children:[run('DÚKASA',{size:80,bold:true})]}),
-      new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:0,after:2400},children:[run('DISPENSARY',{size:80,bold:true})]}),
-      new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:0,after:0},border:{bottom:{style:BorderStyle.SINGLE,size:4,color:B},space:320},children:[run('')]}),
-      gap(320),
-      new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:0,after:200},children:[run('Managers Meeting — Agenda',{size:30,bold:true,color:B})]}),
-      new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:0,after:0},children:[run(friendlyDate(),{size:24,italic:true,color:MID})]}),
-      gap(200),
-      new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:0,after:0},children:[run('9:00 – 11:00 AM  ·  All Managers',{size:18,color:LIGHT,font:'Courier New'})]}),
-      new Paragraph({children:[new PageBreak()]}),
-    ];
-
-    const body=[
-      new Paragraph({spacing:{before:0,after:240},border:{bottom:{style:BorderStyle.SINGLE,size:4,color:VL}},children:[
-        run('DÚKASA DISPENSARY',{font:'Courier New',size:17,color:B}),
-        run('   ·   Managers Meeting   ·   ',{font:'Courier New',size:17,color:LIGHT}),
-        run(friendlyDate(),{font:'Courier New',size:17,color:MID}),
-      ]}),
-      gap(200),
-    ];
-
-    for(const[si,sec] of liveSections.entries()){
-      const isDyn=sec.type!=='static';
-      const items=sec.type==='urgent'?urgA:sec.type==='submitted'?stdA:sec.type==='followup'?followA:sec.items;
-      body.push(secHead(si+1,sec.title,sec.time),gap(60));
-      if(!items.length) body.push(emptyItem(sec.type==='urgent'?'No urgent items':sec.type==='followup'?'No follow-up items':sec.type==='submitted'?'No approved items':'No items'));
-      else for(const item of items){
-        const owner=item.owner||((item.name||'')+(item.dept?' · '+item.dept:''));
-        body.push(agItem(item.text||item.title,owner,isDyn?item.cat:null,isDyn?(item.description||item.desc):null,isDyn?item.time_needed:null,item.drive_files||[]));
-      }
-      body.push(gap(260));
-    }
-    body.push(new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:400,after:0},border:{top:{style:BorderStyle.SINGLE,size:3,color:VL}},children:[run('Dúkasa Dispensary — Confidential   ·   '+friendlyDate(),{font:'Courier New',size:15,italic:true,color:LIGHT})]}));
-
-    const doc=new Document({
-      styles:{default:{document:{run:{font:'Georgia',size:22,color:DARK}}}},
-      sections:[
-        {properties:{page:{size:{width:11906,height:16838},margin:{top:1440,right:1440,bottom:1440,left:1440}}},children:cover},
-        {properties:{page:{size:{width:11906,height:16838},margin:{top:1134,right:1134,bottom:1134,left:1134}}},children:body},
-      ]
-    });
-    Packer.toBlob(doc).then(blob=>{
-      const a=document.createElement('a');
-      a.href=URL.createObjectURL(blob);
-      a.download=(meetingDate?'Dukasa-Agenda-'+meetingDate:'Dukasa-Agenda')+'.docx';
-      a.click();
-      showToast('Agenda exported — upload to Google Drive → open with Docs.','t-brand');
-    }).catch(e=>{showToast('Export error: '+e.message,'t-urgent');console.error(e);});
-  }catch(e){showToast('Export failed: '+e.message,'t-urgent');console.error(e);}
-}
+// Legacy alias
+function exportDocx(){ exportPrint(); }
 
 // ═══════════════════════════════════════════════════════════════════════════
 // GOOGLE DRIVE INTEGRATION
@@ -1300,13 +1242,23 @@ function initGoogleDrive(){
   const cfg=getDriveConfig();
   if(!cfg.clientId) return;
   if(!window.google||!window.google.accounts){setTimeout(initGoogleDrive,800);return;}
-  document.getElementById('cfg-google-client-id').value=cfg.clientId;
-  document.getElementById('cfg-drive-prefix').value=cfg.prefix;
+  // Fill settings fields if open
+  const urlEl=document.getElementById('cfg-google-client-id');
+  const prefEl=document.getElementById('cfg-drive-prefix');
+  if(urlEl) urlEl.value=cfg.clientId;
+  if(prefEl) prefEl.value=cfg.prefix;
   gTokenClient=google.accounts.oauth2.initTokenClient({
     client_id:cfg.clientId,
     scope:'https://www.googleapis.com/auth/drive.file',
     callback:onGoogleToken
   });
+  // Silently try to get a token (no popup — uses existing Google session cookie)
+  // If user is already signed into Google this will succeed without any prompt
+  try {
+    gTokenClient.requestAccessToken({prompt:''});
+  } catch(e){
+    // Silent auth failed — user will need to click "Save & sign in" once
+  }
 }
 
 function requestDriveAccess(cb){
