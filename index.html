@@ -266,45 +266,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 .toast.t-ok{background:var(--ok-g)}
 .toast.t-brand{background:var(--brand)}
 
-/* Preset library drawer */
-.preset-drawer{position:fixed;top:0;right:-420px;width:420px;bottom:0;background:#fff;border-left:1px solid var(--paper-3);box-shadow:-4px 0 32px rgba(0,0,0,.1);z-index:200;display:flex;flex-direction:column;transition:right .3s cubic-bezier(.34,1.2,.64,1)}
-.preset-drawer.open{right:0}
-.drawer-hd{padding:20px 22px 16px;border-bottom:1px solid var(--paper-2);display:flex;align-items:center;gap:10px}
-.drawer-hd h3{font-family:var(--serif);font-size:18px;font-weight:600;flex:1}
-.drawer-close{background:none;border:none;cursor:pointer;color:var(--ink-5);display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:var(--radius)}
-.drawer-close:hover{background:var(--paper-2);color:var(--ink)}
-.drawer-sub{font-family:var(--mono);font-size:10px;color:var(--ink-5);letter-spacing:.08em;padding:8px 22px 4px}
-.drawer-body{flex:1;overflow-y:auto;padding:6px 16px 20px}
-.preset-group{margin-bottom:14px}
-.preset-group-hd{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-5);padding:8px 6px 4px;border-bottom:1px solid var(--paper-2);margin-bottom:4px}
-.preset-item{display:flex;align-items:center;gap:8px;padding:8px 8px;border-radius:var(--radius);cursor:pointer;transition:background .12s;border:1px solid transparent}
-.preset-item:hover{background:var(--brand-l);border-color:var(--brand-m)}
-.preset-item-text{flex:1;font-size:13px;color:var(--ink)}
-.preset-item-owner{font-family:var(--mono);font-size:10px;color:var(--ink-5)}
-.preset-item-add{width:22px;height:22px;border-radius:50%;background:var(--brand-l);border:1px solid var(--brand-m);color:var(--brand);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px;line-height:1}
-.drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.25);z-index:199;display:none}
-.drawer-overlay.open{display:block}
-/* Row move target for dynamic sections */
-.agenda-row.drag-over-item{border-top:2px solid var(--brand)}
-/* Inline edit for dynamic (DB) items */
-.db-edit-form{display:none;padding:8px 14px 10px 28px;border-top:1px solid var(--paper-2);background:var(--paper-2);flex-direction:column;gap:6px}
-.edit-on .db-edit-form.open{display:flex}
-/* Re-enable row actions for all sections in edit mode */
-.edit-on .row-actions{display:flex}
-/* Section type badge for all sections */
-.sec-type-tag{display:inline-flex;align-items:center;gap:3px;font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;padding:2px 6px;border-radius:8px;margin-left:6px;vertical-align:middle;border:1px solid;background:var(--paper-2);border-color:var(--paper-3);color:var(--ink-5)}
-/* Reorder buttons */
-.reorder-btns{display:none;flex-direction:column;gap:1px;flex-shrink:0;padding:0 2px}
-.edit-on .reorder-btns{display:flex}
-.reorder-btn{width:22px;height:18px;border:none;background:none;color:var(--paper-4);cursor:pointer;display:flex;align-items:center;justify-content:center;border-radius:2px;transition:all .1s}
-.reorder-btn:hover{background:var(--paper-2);color:var(--brand)}
-.reorder-btn svg{width:10px;height:10px}
-/* Restore preset button inside section */
-.restore-preset-btn{display:none;width:100%;padding:8px 14px;border:none;background:transparent;border-top:1px dashed var(--paper-3);color:var(--ink-5);font-family:var(--mono);font-size:11px;cursor:pointer;text-align:left;transition:background .13s;gap:6px;align-items:center}
-.restore-preset-btn:hover{background:var(--paper-2);color:var(--brand)}
-.edit-on .restore-preset-btn{display:flex}
-
-@media print{.sidebar,.topbar-actions,.edit-mode-toggle,.sec-actions,.row-actions,.add-row-btn,.add-section-btn,.bsm-delete,.rc-ft,.loading-overlay,.preset-drawer,.drawer-overlay,.restore-preset-btn,.reorder-btns{display:none!important}.main{margin-left:0}.topbar{position:static}}
+@media print{.sidebar,.topbar-actions,.edit-mode-toggle,.sec-actions,.row-actions,.add-row-btn,.add-section-btn,.bsm-delete,.rc-ft,.loading-overlay{display:none!important}.main{margin-left:0}.topbar{position:static}}
 </style>
 </head>
 <body>
@@ -467,18 +429,6 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 
 <div class="toast" id="toast"><svg fill="none" viewBox="0 0 16 16" stroke="currentColor" stroke-width="2"><path d="M3 8l3 3 7-7"/></svg><span id="toast-msg"></span></div>
 
-<!-- Preset library drawer -->
-<div class="drawer-overlay" id="drawer-overlay" onclick="closePresetDrawer()"></div>
-<aside class="preset-drawer" id="preset-drawer">
-  <div class="drawer-hd">
-    <svg fill="none" viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.5" width="18" height="18"><path d="M2 3h12M2 6h12M2 9h8M2 12h6"/></svg>
-    <h3>Preset item library</h3>
-    <button class="drawer-close" onclick="closePresetDrawer()"><svg fill="none" viewBox="0 0 16 16" stroke="currentColor" stroke-width="2"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
-  </div>
-  <div class="drawer-sub">Click any item to add it back to the agenda. These are the default preset items removed from this meeting.</div>
-  <div class="drawer-body" id="drawer-body"></div>
-</aside>
-
 <script>
 // ── Default template (restored each new meeting) ──────────────────────────
 const DEFAULT_SECTIONS = [
@@ -522,13 +472,10 @@ let db = null, requests = [], meetingDate = '', realtimeSub = null;
 let urgentOn = false, deferOn = false, editMode = false;
 // liveSections = the editable agenda structure for this meeting
 let liveSections = JSON.parse(JSON.stringify(DEFAULT_SECTIONS));
-// removedPresetItems: tracks which DEFAULT items were removed this meeting
-// structure: { sectionId: [itemId, ...] }
-let removedPresets = {};
+// Track which section/item editors are open
+let openSectionEdit = null, openItemEdit = null;
 // Drag state
 let dragSec = null, dragItem = null, dragItemSec = null;
-// Preset drawer target section
-let presetTargetSec = null;
 
 const IC = {
   drag:'<svg fill="none" viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.5"><path d="M5 4h1M5 8h1M5 12h1M10 4h1M10 8h1M10 12h1"/></svg>',
@@ -540,10 +487,7 @@ const IC = {
   alert:'<svg width="13" height="13" fill="none" viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.5"><path d="M8 2l6 12H2L8 2zM8 7v3M8 12v.5"/></svg>',
   user:'<svg width="11" height="11" fill="none" viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg>',
   reply:'<svg width="11" height="11" fill="none" viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.5"><path d="M2 8h8a4 4 0 010 8H6M2 8l4-4M2 8l4 4"/></svg>',
-  defer:'<svg width="11" height="11" fill="none" viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/><path d="M13 3l2-2"/></svg>',
-  up:'<svg fill="none" viewBox="0 0 16 16" stroke="currentColor" stroke-width="2"><path d="M8 12V4M4 8l4-4 4 4"/></svg>',
-  down:'<svg fill="none" viewBox="0 0 16 16" stroke="currentColor" stroke-width="2"><path d="M8 4v8M4 8l4 4 4-4"/></svg>',
-  library:'<svg fill="none" viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="5" height="12" rx="1"/><rect x="9" y="2" width="5" height="12" rx="1"/></svg>'
+  defer:'<svg width="11" height="11" fill="none" viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/><path d="M13 3l2-2"/></svg>'
 };
 
 function esc(s){return s?String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'):''}
@@ -598,9 +542,6 @@ async function loadAll(){
   const ss=(settings||[]).find(s=>s.key==='live_sections');
   if(ss&&ss.value){try{liveSections=JSON.parse(ss.value);}catch{liveSections=cloneSections();}}
   else{liveSections=cloneSections();}
-  const rp=(settings||[]).find(s=>s.key==='removed_presets');
-  if(rp&&rp.value){try{removedPresets=JSON.parse(rp.value);}catch{removedPresets={};}}
-  else{removedPresets={};}
   const ds=(settings||[]).find(s=>s.key==='meeting_date');
   meetingDate=ds?ds.value:'';
   const di=document.getElementById('meeting-date-input');
@@ -615,10 +556,7 @@ async function loadAll(){
 
 async function saveSections(){
   if(!db)return;
-  await Promise.all([
-    db.from('meeting_settings').upsert({key:'live_sections',value:JSON.stringify(liveSections)}),
-    db.from('meeting_settings').upsert({key:'removed_presets',value:JSON.stringify(removedPresets)})
-  ]);
+  await db.from('meeting_settings').upsert({key:'live_sections',value:JSON.stringify(liveSections)});
 }
 
 function subscribeRealtime(){
@@ -632,7 +570,6 @@ function subscribeRealtime(){
       if(!n)return;
       if(n.key==='meeting_date'){meetingDate=n.value;document.getElementById('meeting-date-input').value=meetingDate;renderDateDisplay();}
       if(n.key==='live_sections'){try{liveSections=JSON.parse(n.value);renderAgenda();}catch{}}
-      if(n.key==='removed_presets'){try{removedPresets=JSON.parse(n.value);}catch{}}
     }).subscribe();
 }
 
@@ -697,99 +634,11 @@ function showPanel(name){
 function toggleEditMode(){
   editMode=!editMode;
   document.getElementById('edit-toggle').classList.toggle('on',editMode);
-  document.getElementById('panel-agenda').classList.toggle('edit-on',editMode);
   document.getElementById('agenda-sections').classList.toggle('edit-on',editMode);
-}
-
-// ── Preset library drawer ─────────────────────────────────────────────────
-function openPresetDrawer(sid){
-  presetTargetSec=sid;
-  renderDrawer();
-  document.getElementById('preset-drawer').classList.add('open');
-  document.getElementById('drawer-overlay').classList.add('open');
-}
-function closePresetDrawer(){
-  document.getElementById('preset-drawer').classList.remove('open');
-  document.getElementById('drawer-overlay').classList.remove('open');
-  presetTargetSec=null;
-}
-
-function getAvailablePresets(sid){
-  // Find removed presets for this section plus globally from any static section
-  const removed=removedPresets[sid]||[];
-  if(!removed.length)return[];
-  // Find the matching DEFAULT section
-  const defSec=DEFAULT_SECTIONS.find(s=>s.id===sid);
-  if(!defSec)return[];
-  // Return default items that are currently removed
-  const liveSec=liveSections.find(s=>s.id===sid);
-  const liveIds=liveSec?liveSec.items.map(i=>i.id):[];
-  return defSec.items.filter(i=>removed.includes(i.id)&&!liveIds.includes(i.id));
-}
-
-function getAllRemovedPresets(){
-  // Returns {secId, secTitle, items:[...]} for all sections with removed presets
-  const result=[];
-  Object.keys(removedPresets).forEach(sid=>{
-    const items=getAvailablePresets(sid);
-    if(!items.length)return;
-    const defSec=DEFAULT_SECTIONS.find(s=>s.id===sid);
-    const liveSec=liveSections.find(s=>s.id===sid);
-    const title=(liveSec||defSec||{}).title||sid;
-    result.push({sid,title,items});
-  });
-  return result;
-}
-
-function renderDrawer(){
-  const body=document.getElementById('drawer-body');
-  const groups=getAllRemovedPresets();
-  if(!groups.length){
-    body.innerHTML='<div style="padding:24px 6px;font-family:var(--mono);font-size:12px;color:var(--ink-5);text-align:center">No preset items have been removed from this meeting.</div>';
-    return;
-  }
-  // If we have a target section, filter to that; else show all
-  const filtered=presetTargetSec?groups.filter(g=>g.sid===presetTargetSec):groups;
-  const toShow=filtered.length?filtered:groups;
-  body.innerHTML=toShow.map(g=>`
-    <div class="preset-group">
-      <div class="preset-group-hd">${esc(g.title)}</div>
-      ${g.items.map(item=>`
-        <div class="preset-item" onclick="restorePreset('${g.sid}','${item.id}')">
-          <div class="preset-item-add">+</div>
-          <div>
-            <div class="preset-item-text">${esc(item.text)}</div>
-            ${item.owner?`<div class="preset-item-owner">${esc(item.owner)}</div>`:''}
-          </div>
-        </div>
-      `).join('')}
-    </div>
-  `).join('');
-}
-
-function restorePreset(sid,iid){
-  const defSec=DEFAULT_SECTIONS.find(s=>s.id===sid);
-  if(!defSec)return;
-  const defItem=defSec.items.find(i=>i.id===iid);
-  if(!defItem)return;
-  const liveSec=liveSections.find(s=>s.id===sid);
-  if(!liveSec)return;
-  // Remove from removedPresets
-  if(removedPresets[sid]){
-    removedPresets[sid]=removedPresets[sid].filter(id=>id!==iid);
-    if(!removedPresets[sid].length)delete removedPresets[sid];
-  }
-  // Add back at the right position (preserve original order from DEFAULT)
-  const defIdx=defSec.items.findIndex(i=>i.id===iid);
-  // Find insertion point in liveSec items based on relative order
-  let insertAt=liveSec.items.length;
-  for(let i=0;i<liveSec.items.length;i++){
-    const liveDefIdx=defSec.items.findIndex(d=>d.id===liveSec.items[i].id);
-    if(liveDefIdx>defIdx){insertAt=i;break;}
-  }
-  liveSec.items.splice(insertAt,0,{...defItem});
-  saveSections();renderAgenda();renderDrawer();
-  showToast('Preset item restored.','t-ok');
+  document.querySelector('.add-section-btn').parentElement.classList.toggle('edit-on',editMode)||
+  document.getElementById('panel-agenda').classList.toggle('edit-on',editMode);
+  // apply edit-on to the whole panel
+  document.getElementById('panel-agenda').classList.toggle('edit-on',editMode);
 }
 
 // ── Section management ────────────────────────────────────────────────────
@@ -797,51 +646,39 @@ function addSection(){
   const s={id:uid(),title:'New section',time:'10 min',type:'static',items:[]};
   liveSections.push(s);
   saveSections();renderAgenda();
+  // open its editor immediately
   setTimeout(()=>openSecEdit(s.id),50);
 }
 
 function openSecEdit(sid){
+  // close any open
   document.querySelectorAll('.sec-edit-row.open').forEach(el=>el.classList.remove('open'));
   const el=document.getElementById('sec-edit-'+sid);
   if(el){el.classList.add('open');el.querySelector('.title-inp').focus();}
+  openSectionEdit=sid;
 }
 
 function saveSecEdit(sid){
   const titleEl=document.getElementById('sec-title-inp-'+sid);
   const timeEl=document.getElementById('sec-time-inp-'+sid);
-  const typeEl=document.getElementById('sec-type-inp-'+sid);
   const sec=liveSections.find(s=>s.id===sid);
   if(!sec)return;
   if(titleEl)sec.title=titleEl.value.trim()||sec.title;
   if(timeEl)sec.time=timeEl.value.trim()||sec.time;
-  if(typeEl)sec.type=typeEl.value||sec.type;
   document.getElementById('sec-edit-'+sid)?.classList.remove('open');
   saveSections();renderAgenda();
   showToast('Section updated.');
 }
 
 function deleteSection(sid){
-  if(!confirm('Remove this section from this meeting\'s agenda?'))return;
+  if(!confirm('Remove this section and all its items? This resets at the next meeting.'))return;
   liveSections=liveSections.filter(s=>s.id!==sid);
   saveSections();renderAgenda();showToast('Section removed.');
 }
 
-function moveSectionUp(sid){
-  const idx=liveSections.findIndex(s=>s.id===sid);
-  if(idx<=0)return;
-  [liveSections[idx-1],liveSections[idx]]=[liveSections[idx],liveSections[idx-1]];
-  saveSections();renderAgenda();
-}
-function moveSectionDown(sid){
-  const idx=liveSections.findIndex(s=>s.id===sid);
-  if(idx<0||idx>=liveSections.length-1)return;
-  [liveSections[idx],liveSections[idx+1]]=[liveSections[idx+1],liveSections[idx]];
-  saveSections();renderAgenda();
-}
-
 function resetToDefault(){
   if(!confirm('Reset agenda to default template? Custom edits will be lost.'))return;
-  liveSections=cloneSections();removedPresets={};
+  liveSections=cloneSections();
   saveSections();renderAgenda();showToast('Agenda reset to default.');
 }
 
@@ -855,7 +692,7 @@ function addItem(sid){
 }
 
 function openItemEditFn(sid,iid){
-  document.querySelectorAll('.row-edit-form.open,.db-edit-form.open').forEach(el=>el.classList.remove('open'));
+  document.querySelectorAll('.row-edit-form.open').forEach(el=>el.classList.remove('open'));
   const el=document.getElementById('item-edit-'+sid+'-'+iid);
   if(el){el.classList.add('open');el.querySelector('input')?.focus();}
 }
@@ -874,65 +711,10 @@ function saveItemEdit(sid,iid){
 }
 
 function deleteItem(sid,iid){
+  // For this meeting only — note: it will restore next meeting from DEFAULT
   const sec=liveSections.find(s=>s.id===sid);if(!sec)return;
-  // Check if this is a DEFAULT/preset item — track it in removedPresets
-  const defSec=DEFAULT_SECTIONS.find(s=>s.id===sid);
-  if(defSec&&defSec.items.find(i=>i.id===iid)){
-    if(!removedPresets[sid])removedPresets[sid]=[];
-    if(!removedPresets[sid].includes(iid))removedPresets[sid].push(iid);
-  }
   sec.items=sec.items.filter(i=>i.id!==iid);
-  saveSections();renderAgenda();showToast('Item removed from this meeting. Find it in the preset library to restore.');
-}
-
-function moveItemUp(sid,iid){
-  const sec=liveSections.find(s=>s.id===sid);if(!sec)return;
-  const idx=sec.items.findIndex(i=>i.id===iid);
-  if(idx<=0)return;
-  [sec.items[idx-1],sec.items[idx]]=[sec.items[idx],sec.items[idx-1]];
-  saveSections();renderAgenda();
-}
-function moveItemDown(sid,iid){
-  const sec=liveSections.find(s=>s.id===sid);if(!sec)return;
-  const idx=sec.items.findIndex(i=>i.id===iid);
-  if(idx<0||idx>=sec.items.length-1)return;
-  [sec.items[idx],sec.items[idx+1]]=[sec.items[idx+1],sec.items[idx]];
-  saveSections();renderAgenda();
-}
-
-// ── Edit DB (submitted) items inline ──────────────────────────────────────
-function openDbItemEdit(id){
-  document.querySelectorAll('.row-edit-form.open,.db-edit-form.open').forEach(el=>el.classList.remove('open'));
-  const el=document.getElementById('dbedit-'+id);
-  if(el){el.classList.add('open');el.querySelector('input')?.focus();}
-}
-async function saveDbItemEdit(id){
-  const tEl=document.getElementById('dbedit-title-'+id);
-  const dEl=document.getElementById('dbedit-desc-'+id);
-  const oEl=document.getElementById('dbedit-owner-'+id);
-  const tVal=tEl?.value.trim();
-  const dVal=dEl?.value.trim();
-  const oVal=oEl?.value.trim();
-  if(!tVal){showToast('Title cannot be empty.');return;}
-  const updates={title:tVal};
-  if(dEl)updates.description=dVal;
-  if(oEl)updates.name=oVal;
-  if(db){
-    const{error}=await db.from('agenda_requests').update(updates).eq('id',id);
-    if(error){showToast('Save failed: '+error.message,'t-urgent');return;}
-  }
-  const i=requests.findIndex(r=>r.id===id);
-  if(i>-1){requests[i].title=tVal;if(dEl)requests[i].description=dVal;if(oEl)requests[i].name=oVal;}
-  document.getElementById('dbedit-'+id)?.classList.remove('open');
-  renderAgenda();renderBoard();showToast('Item updated.','t-ok');
-}
-async function removeDbItemFromAgenda(id){
-  // Remove from agenda (unapprove) but keep in board
-  if(!db)return;
-  await db.from('agenda_requests').update({status:'pending'}).eq('id',id);
-  const i=requests.findIndex(r=>r.id===id);
-  if(i>-1)requests[i].status='pending';
-  renderAgenda();renderBoard();updateBadge();showToast('Item removed from agenda (still in board).');
+  saveSections();renderAgenda();showToast('Item removed from this meeting\'s agenda.');
 }
 
 // ── DB request actions ────────────────────────────────────────────────────
@@ -970,7 +752,7 @@ async function addFollowup(id){
 }
 async function deleteReq(id){
   if(!db)return;
-  if(!confirm('Delete this request permanently from the database?'))return;
+  if(!confirm('Delete this request permanently?'))return;
   await db.from('agenda_requests').delete().eq('id',id);
   requests=requests.filter(r=>r.id!==id);
   renderAgenda();renderBoard();updateBadge();showToast('Request deleted.');
@@ -994,14 +776,7 @@ function onSecDrop(e,sid){
 // ── Drag & drop items ─────────────────────────────────────────────────────
 function onItemDragStart(e,sid,iid){dragItem=iid;dragItemSec=sid;e.currentTarget.closest('.agenda-row').classList.add('dragging-item');}
 function onItemDragEnd(e){e.currentTarget.closest('.agenda-row').classList.remove('dragging-item');dragItem=null;dragItemSec=null;}
-function onItemDragOver(e,sid,iid){
-  e.preventDefault();
-  if(dragItem&&dragItem!==iid){
-    document.querySelectorAll('.agenda-row').forEach(el=>el.classList.remove('drag-over-item'));
-    const el=document.getElementById('row-'+sid+'-'+iid);
-    if(el)el.classList.add('drag-over-item');
-  }
-}
+function onItemDragOver(e,sid,iid){e.preventDefault();if(dragItem&&dragItem!==iid){document.querySelectorAll('.agenda-row').forEach(el=>el.classList.remove('drag-over-item'));const el=document.getElementById('row-'+sid+'-'+iid);if(el)el.classList.add('drag-over-item');}}
 function onItemDrop(e,toSid,toIid){
   e.preventDefault();
   document.querySelectorAll('.agenda-row').forEach(el=>el.classList.remove('drag-over-item'));
@@ -1045,107 +820,65 @@ function renderAgenda(){
   if(deferA.length){db2.className='banner banner-defer show';db2.innerHTML=`<div class="banner-hd">${IC.defer} ${deferA.length} item${deferA.length>1?'s':''} saved for next-next meeting</div><div>${deferA.map(r=>`<span class="banner-pill">${esc(r.title)}</span>`).join('')}</div>`;}
   else{db2.className='banner banner-defer';db2.innerHTML='';}
 
-  const em=editMode;
+  const panel=document.getElementById('panel-agenda');
+  const em=panel.classList.contains('edit-on');
 
   document.getElementById('agenda-sections').innerHTML=liveSections.map((sec,si)=>{
-    const isDynamic=(sec.type==='urgent'||sec.type==='submitted'||sec.type==='followup');
+    const isDynamic=sec.type!=='static';
     let dynamicItems=[];
     if(sec.type==='urgent')dynamicItems=urgA;
     else if(sec.type==='submitted')dynamicItems=stdA;
     else if(sec.type==='followup')dynamicItems=followA;
-    // For static sections, items come from liveSections; for dynamic, from DB
     const items=isDynamic?dynamicItems:sec.items;
 
     const tag=sec.type==='urgent'?`<span class="sec-tag tag-urgent">${IC.alert} Urgent</span>`:
                sec.type==='submitted'?`<span class="sec-tag tag-sub">Submitted</span>`:
                sec.type==='followup'?`<span class="sec-tag tag-follow">${IC.reply} Follow-ups</span>`:'';
 
-    // Check if any removed presets exist for this section
-    const hasRemovedPresets=!!(removedPresets[sec.id]&&removedPresets[sec.id].length&&getAvailablePresets(sec.id).length);
-
     const rows=!items.length
       ?`<div class="empty-row">${sec.type==='urgent'?'No urgent items':sec.type==='followup'?'No follow-up items':sec.type==='submitted'?'No approved items yet':'No items'}</div>`
-      :items.map((item,itemIdx)=>{
-          const isDBItem=!!(item.created_at||item.status);
-          const rowId='row-'+sec.id+'-'+item.id;
+      :items.map(item=>{
           const owner=item.owner||((item.name||'')+(item.dept?` · ${item.dept}`:''));
-
-          // Actions for this row
-          let actions='';
-          if(isDBItem){
-            // DB items (submitted/urgent/follow-up): edit inline or remove from agenda
-            actions=`
-              <button class="icon-btn" onclick="openDbItemEdit('${item.id}')" title="Edit">${IC.edit}</button>
-              <button class="icon-btn danger" onclick="removeDbItemFromAgenda('${item.id}')" title="Remove from agenda">${IC.trash}</button>`;
-          }else{
-            // Static/custom items: edit + delete (with preset library tracking)
-            actions=`
-              <button class="icon-btn" onclick="openItemEditFn('${sec.id}','${item.id}')" title="Edit">${IC.edit}</button>
-              <button class="icon-btn danger" onclick="deleteItem('${sec.id}','${item.id}')" title="Remove">${IC.trash}</button>`;
-          }
-
-          // Reorder buttons (up/down arrows as alternative to drag)
-          const reorderBtns=isDBItem?'':`
-            <div class="reorder-btns">
-              <button class="reorder-btn" onclick="moveItemUp('${sec.id}','${item.id}')" title="Move up">${IC.up}</button>
-              <button class="reorder-btn" onclick="moveItemDown('${sec.id}','${item.id}')" title="Move down">${IC.down}</button>
-            </div>`;
-
-          // Edit form (static items use row-edit-form, DB items use db-edit-form)
-          let editForm='';
-          if(isDBItem){
-            editForm=`<div class="db-edit-form" id="dbedit-${item.id}" style="">
-              <div><div class="field-label">Item title</div><input id="dbedit-title-${item.id}" value="${esc(item.title||item.text||'')}"></div>
-              <div class="row-edit-grid">
-                <div><div class="field-label">Submitted by</div><input id="dbedit-owner-${item.id}" value="${esc(item.name||'')}"></div>
-                <div><div class="field-label">Description</div><input id="dbedit-desc-${item.id}" value="${esc(item.description||'')}"></div>
-              </div>
-              <div class="row-edit-actions">
-                <button class="btn-sm bsm-unapprove" onclick="document.getElementById('dbedit-${item.id}').classList.remove('open')">Cancel</button>
-                <button class="btn-sm bsm-approve" onclick="saveDbItemEdit('${item.id}')">${IC.check} Save</button>
-              </div>
-            </div>`;
-          }else{
-            editForm=`<div class="row-edit-form" id="item-edit-${sec.id}-${item.id}">
-              <div><div class="field-label">Item text</div><input id="item-text-${sec.id}-${item.id}" value="${esc(item.text||item.title||'')}"></div>
-              <div class="row-edit-grid">
-                <div><div class="field-label">Owner / role</div><input id="item-owner-${sec.id}-${item.id}" value="${esc(item.owner||'')}"></div>
-                <div><div class="field-label">Notes</div><input id="item-desc-${sec.id}-${item.id}" value="${esc(item.desc||'')}"></div>
-              </div>
-              <div class="row-edit-actions">
-                <button class="btn-sm bsm-unapprove" onclick="document.getElementById('item-edit-${sec.id}-${item.id}').classList.remove('open')">Cancel</button>
-                <button class="btn-sm bsm-approve" onclick="saveItemEdit('${sec.id}','${item.id}')">${IC.check} Save</button>
-              </div>
-            </div>`;
-          }
-
-          return `<div class="agenda-row" id="${rowId}"
-            draggable="${em&&!isDBItem}"
+          const reqId=item.id&&item.id.startsWith('x')?null:item.id;// DB items have uuid
+          const presetId=item.id&&!item.id.startsWith('x')&&isDynamic?item.id:null;
+          // For static/custom sections, item.id is always our local id
+          const isDBItem=!!(item.created_at);// DB requests have created_at
+          return `<div class="agenda-row" id="row-${sec.id}-${item.id}"
+            draggable="${em&&!isDynamic}"
             ondragstart="onItemDragStart(event,'${sec.id}','${item.id}')"
             ondragend="onItemDragEnd(event)"
             ondragover="onItemDragOver(event,'${sec.id}','${item.id}')"
             ondrop="onItemDrop(event,'${sec.id}','${item.id}')">
             <div class="row-drag">${IC.drag}</div>
-            ${reorderBtns}
             <div class="row-body">
               <div class="row-title">${esc(item.text||item.title)}</div>
               <div class="row-sub">
                 ${owner?`<span>${IC.user} ${esc(owner)}</span>`:''}
-                ${isDBItem&&item.cat?`<span class="chip chip-base">${esc(item.cat)}</span>`:''}
-                ${isDBItem&&item.time_needed?`<span class="chip chip-brand">${IC.clock} ${esc(item.time_needed)}</span>`:''}
+                ${isDynamic&&item.cat?`<span class="chip chip-base">${esc(item.cat)}</span>`:''}
+                ${isDynamic&&item.time_needed?`<span class="chip chip-brand">${IC.clock} ${esc(item.time_needed)}</span>`:''}
                 ${item.urgent?`<span class="chip chip-urgent">${IC.alert} Urgent</span>`:''}
                 ${item.is_followup?`<span class="chip chip-follow">${IC.reply} Follow-up</span>`:''}
                 ${item.deferred?`<span class="chip chip-defer">${IC.defer} Deferred</span>`:''}
-                ${item.desc?`<span class="chip chip-base">${esc(item.desc)}</span>`:''}
               </div>
-              ${(isDBItem&&item.description)||(item.desc&&false)?`<div class="row-desc">${esc(item.description||item.desc)}</div>`:''}
+              ${(isDynamic&&item.description)||(item.desc)?`<div class="row-desc">${esc(item.description||item.desc)}</div>`:''}
             </div>
-            <div class="row-actions">${actions}</div>
-          </div>${editForm}`;
+            <div class="row-actions">
+              ${!isDynamic?`<button class="icon-btn" onclick="openItemEditFn('${sec.id}','${item.id}')" title="Edit">${IC.edit}</button>`:''}
+              <button class="icon-btn danger" onclick="${isDBItem?`deleteReq('${item.id}')`:`deleteItem('${sec.id}','${item.id}')`}" title="Remove">${IC.trash}</button>
+            </div>
+          </div>
+          ${!isDynamic?`<div class="row-edit-form" id="item-edit-${sec.id}-${item.id}">
+            <div><div class="field-label">Item text</div><input id="item-text-${sec.id}-${item.id}" value="${esc(item.text||item.title||'')}"></div>
+            <div class="row-edit-grid">
+              <div><div class="field-label">Owner / role</div><input id="item-owner-${sec.id}-${item.id}" value="${esc(item.owner||'')}"></div>
+              <div><div class="field-label">Notes</div><input id="item-desc-${sec.id}-${item.id}" value="${esc(item.desc||'')}"></div>
+            </div>
+            <div class="row-edit-actions">
+              <button class="btn-sm bsm-unapprove" onclick="document.getElementById('item-edit-${sec.id}-${item.id}').classList.remove('open')">Cancel</button>
+              <button class="btn-sm bsm-approve" onclick="saveItemEdit('${sec.id}','${item.id}')">${IC.check} Save</button>
+            </div>
+          </div>`:''}`;
         }).join('');
-
-    const typeOptions=['static','urgent','submitted','followup'].map(t=>
-      `<option value="${t}"${t===sec.type?' selected':''}>${t.charAt(0).toUpperCase()+t.slice(1)}</option>`).join('');
 
     return `<div class="section-block" id="secblock-${sec.id}"
         draggable="${em}"
@@ -1155,10 +888,6 @@ function renderAgenda(){
         ondrop="onSecDrop(event,'${sec.id}')">
       <div class="section-head">
         <div class="sec-drag" title="Drag to reorder">${IC.drag}</div>
-        <div class="reorder-btns" style="flex-direction:row;padding:0 4px">
-          <button class="reorder-btn" onclick="moveSectionUp('${sec.id}')" title="Move section up">${IC.up}</button>
-          <button class="reorder-btn" onclick="moveSectionDown('${sec.id}')" title="Move section down">${IC.down}</button>
-        </div>
         <div class="sec-num">${String(si+1).padStart(2,'0')}</div>
         <div class="sec-title-area">
           <span class="sec-name">${esc(sec.title)}</span>${tag}
@@ -1178,21 +907,17 @@ function renderAgenda(){
           <div class="field-label">Time</div>
           <input class="time-inp" id="sec-time-inp-${sec.id}" value="${esc(sec.time)}">
         </div>
-        <div style="flex:0 0 110px">
-          <div class="field-label">Section type</div>
-          <select id="sec-type-inp-${sec.id}" style="border:1px solid var(--paper-3);border-radius:var(--radius);padding:6px 8px;font-family:var(--sans);font-size:12px;color:var(--ink);background:#fff;outline:none;width:100%">${typeOptions}</select>
-        </div>
         <div style="display:flex;gap:6px;align-items:flex-end;padding-bottom:1px">
           <button class="btn-sm bsm-unapprove" onclick="document.getElementById('sec-edit-${sec.id}').classList.remove('open')">Cancel</button>
           <button class="btn-sm bsm-approve" onclick="saveSecEdit('${sec.id}')">${IC.check} Save</button>
         </div>
       </div>
       <div>${rows}</div>
-      <button class="add-row-btn" onclick="addItem('${sec.id}')">+ Add item to this section</button>
-      ${hasRemovedPresets?`<button class="restore-preset-btn" onclick="openPresetDrawer('${sec.id}')">${IC.library} Restore removed preset items…</button>`:''}
+      ${!isDynamic?`<button class="add-row-btn" onclick="addItem('${sec.id}')">+ Add item to this section</button>`:''}
     </div>`;
   }).join('');
 
+  // Re-apply edit mode class to newly rendered elements
   document.getElementById('agenda-sections').classList.toggle('edit-on',editMode);
   document.getElementById('panel-agenda').classList.toggle('edit-on',editMode);
 }
@@ -1286,63 +1011,4 @@ async function submitRequest(){
     description:document.getElementById('f-desc').value.trim()||null,
     time_needed:document.getElementById('f-time').value,
     urgent:urgentOn,deferred:deferOn,is_followup:false,
-    status:urgentOn?'approved':deferOn?'deferred':'pending'
-  });
-  btn.disabled=false;btn.textContent='Submit request';
-  if(error){document.getElementById('submit-status').textContent='Error: '+error.message;showToast('Submit failed.','t-urgent');}
-  else{document.getElementById('submit-status').textContent='✓ Submitted!';showToast('Item submitted.','t-ok');clearForm();}
-}
-
-// ── Export ────────────────────────────────────────────────────────────────
-async function exportDocx(){
-  const{Document,Paragraph,TextRun,HeadingLevel,Packer,AlignmentType}=window.docx;
-  const urgA=requests.filter(r=>r.urgent&&r.status==='approved');
-  const stdA=requests.filter(r=>!r.urgent&&!r.is_followup&&!r.deferred&&r.status==='approved');
-  const followA=requests.filter(r=>r.is_followup&&r.status==='approved');
-  const children=[
-    new Paragraph({text:'Dúkasa Dispensary — Managers Meeting',heading:HeadingLevel.HEADING_1}),
-    new Paragraph({text:'Agenda — '+friendlyDate()}),
-    new Paragraph({text:''})
-  ];
-  liveSections.forEach((sec,i)=>{
-    children.push(new Paragraph({text:(i+1)+'. '+sec.title+' ('+sec.time+')',heading:HeadingLevel.HEADING_2}));
-    let items=sec.items;
-    if(sec.type==='urgent')items=urgA.map(r=>({text:r.title,owner:r.name+(r.dept?' · '+r.dept:'')}));
-    else if(sec.type==='submitted')items=stdA.map(r=>({text:r.title,owner:r.name+(r.dept?' · '+r.dept:'')}));
-    else if(sec.type==='followup')items=followA.map(r=>({text:r.title,owner:r.name+(r.dept?' · '+r.dept:'')}));
-    if(items.length){
-      items.forEach(item=>{
-        children.push(new Paragraph({children:[
-          new TextRun({text:'• '+(item.text||item.title||'')}),
-          (item.owner||item.desc)?new TextRun({text:' — '+((item.owner||'')+(item.desc?' ('+item.desc+')':'')),color:'767676',size:20}):new TextRun('')
-        ]}));
-      });
-    }else{
-      children.push(new Paragraph({children:[new TextRun({text:'No items',italics:true,color:'a0a0a0'})]}));
-    }
-    children.push(new Paragraph({text:''}));
-  });
-  const doc=new Document({sections:[{children}]});
-  const blob=await Packer.toBlob(doc);
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
-  a.download='Agenda-'+(meetingDate||'draft')+'.docx';a.click();
-  showToast('Agenda exported.','t-ok');
-}
-
-// ── Toast ─────────────────────────────────────────────────────────────────
-let toastTimer=null;
-function showToast(msg,cls=''){
-  const t=document.getElementById('toast'),s=document.getElementById('toast-msg');
-  t.className='toast'+(cls?' '+cls:'');s.textContent=msg;t.classList.add('show');
-  if(toastTimer)clearTimeout(toastTimer);
-  toastTimer=setTimeout(()=>t.classList.remove('show'),3200);
-}
-
-// ── Init ──────────────────────────────────────────────────────────────────
-window.addEventListener('DOMContentLoaded',()=>{
-  renderAgenda();
-  initSupabase();
-});
-</script>
-</body>
-</html>
+    status:urgentOn?'approved':deferOn?'deferred':'pendi
