@@ -1283,11 +1283,38 @@ function _doExportWord(){
       return `<w:tc><w:tcPr><w:tcW w:w="${width}" w:type="dxa"/><w:tcBorders><w:top ${NB}/><w:left ${NB}/><w:bottom ${NB}/><w:right ${NB}/></w:tcBorders>${shdXml}<w:vAlign w:val="center"/></w:tcPr>${content}</w:tc>`;
     }
 
-    function wTable(rows, bottomColor){
-      const bc = bottomColor || 'D4CFC5';
-      return `<w:tbl><w:tblPr><w:tblW w:w="${W}" w:type="dxa"/><w:tblLayout w:type="fixed"/><w:tblInd w:w="0" w:type="dxa"/><w:tblBorders><w:top ${NB}/><w:left ${NB}/><w:bottom w:val="single" w:sz="4" w:space="0" w:color="${bc}"/><w:right ${NB}/><w:insideH ${NB}/><w:insideV ${NB}/></w:tblBorders><w:tblCellMar><w:top w:w="60" w:type="dxa"/><w:left w:w="80" w:type="dxa"/><w:bottom w:w="60" w:type="dxa"/><w:right w:w="80" w:type="dxa"/></w:tblCellMar><w:tblLook w:val="0000"/></w:tblPr>${rows}</w:tbl>`;
-    }
+function wTable(rows, bottomColor, gridWidths=[]){
+  const bc = bottomColor || 'D4CFC5';
 
+  const grid = gridWidths.length
+    ? `<w:tblGrid>${gridWidths.map(w => `<w:gridCol w:w="${w}"/>`).join('')}</w:tblGrid>`
+    : '';
+
+  return `<w:tbl>
+    <w:tblPr>
+      <w:tblW w:w="${W}" w:type="dxa"/>
+      <w:tblLayout w:type="fixed"/>
+      <w:tblInd w:w="0" w:type="dxa"/>
+      <w:tblBorders>
+        <w:top ${NB}/>
+        <w:left ${NB}/>
+        <w:bottom w:val="single" w:sz="4" w:space="0" w:color="${bc}"/>
+        <w:right ${NB}/>
+        <w:insideH ${NB}/>
+        <w:insideV ${NB}/>
+      </w:tblBorders>
+      <w:tblCellMar>
+        <w:top w:w="60" w:type="dxa"/>
+        <w:left w:w="80" w:type="dxa"/>
+        <w:bottom w:w="60" w:type="dxa"/>
+        <w:right w:w="80" w:type="dxa"/>
+      </w:tblCellMar>
+      <w:tblLook w:val="0000"/>
+    </w:tblPr>
+    ${grid}
+    ${rows}
+  </w:tbl>`;
+}
     const gap = n => wPara('', {after: n});
 
     // ── Section header ───────────────────────────────────────────────────────
@@ -1303,7 +1330,7 @@ function _doExportWord(){
           ${wCell(wPara(wRun(String(num).padStart(2,'0'), {font:'Courier New', pt:11, bold:true, color:'927150'}), {align:'center', before:60, after:60}), C1, 'EDE8E0')}
           ${wCell(wPara(wRun(title, {pt:12, bold:true, color:'1A1A1A'}), {before:60, after:60}), C2, 'EDE8E0')}
           ${wCell(wPara(wRun(time,  {font:'Courier New', pt:10, color:'927150'}), {align:'right', before:60, after:60}), C3, 'EDE8E0')}
-        </w:tr>`, 'C8C3BB'),
+        </w:tr>`, 'C8C3BB', [C1, C2, C3]),
         gap(80),
       ].join('');
     }
@@ -1330,7 +1357,7 @@ function _doExportWord(){
         wTable(`<w:tr>
           ${wCell(gap(0), C1, null)}
           ${wCell(bodyParas, C2, null)}
-        </w:tr>`, 'E4E0D8'),
+        </w:tr>`, 'E4E0D8', [C1, C2]),
         gap(0),
       ].join('');
     }
@@ -1339,7 +1366,7 @@ function _doExportWord(){
       return [
         wTable(`<w:tr>
           ${wCell(wPara(wRun(msg, {font:'Courier New', pt:9, italic:true, color:'B0A898'}), {after:0}), W, null)}
-        </w:tr>`, 'E4E0D8'),
+        </w:tr>`, 'E4E0D8', [W]),
         gap(0),
       ].join('');
     }
