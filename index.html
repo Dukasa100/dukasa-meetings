@@ -381,13 +381,12 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
               <div class="field">
                 <label>Supporting files <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:10px;color:var(--ink-5)">— saved to Google Drive meeting folder</span></label>
                 <div id="drive-status-form" class="drive-status disconnected">
-                  <svg fill="none" viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.5"><path d="M2 12h12M5 12L2 7h4l1-4 3 4h4l-3 5z"/></svg>
+                  <svg width="13" height="13" fill="none" viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.5" style="flex-shrink:0"><path d="M2 12h12M5 12L2 7h4l1-4 3 4h4l-3 5z"/></svg>
                   <span id="drive-status-text">Connect Google Drive in Settings to enable file uploads</span>
                 </div>
                 <div class="file-drop-zone" id="drop-zone" onclick="document.getElementById('f-files').click()">
                   <input type="file" id="f-files" multiple accept="*/*" onchange="onFilesSelected(this.files)" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none">
-                  <div class="dz-icon"><svg width="18" height="18" fill="none" viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.3"><path d="M13 7.5L7 13.5a4 4 0 01-5.5-5.5l7-7a2.5 2.5 0 013.5 3.5l-7 7a1 1 0 01-1.5-1.5l6-6"/></svg></div>
-                  <div class="dz-text"><strong>Click to attach files</strong>or drag &amp; drop here</div>
+                  <div class="dz-text"><strong>Drag &amp; drop files here</strong> or click to browse</div>
                 </div>
                 <div class="file-list" id="file-list"></div>
               </div>
@@ -458,7 +457,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
             <div class="cfg-note" id="drive-cfg-status" style="margin-top:10px"></div>
             <div id="drive-folder-info" style="margin-top:10px;display:none">
               <a id="drive-folder-link" href="#" target="_blank" class="drive-folder-link">
-                <svg fill="none" viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.5"><path d="M2 4h4l2 2h6v8H2z"/></svg>
+                <svg width="13" height="13" fill="none" viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.5" style="flex-shrink:0"><path d="M2 4h4l2 2h6v8H2z"/></svg>
                 <span id="drive-folder-name">Open meeting folder</span>
               </a>
             </div>
@@ -1314,7 +1313,7 @@ function setDriveStatus(connected){
     if(cfg) cfg.textContent='✓ Connected to Google Drive.';
   } else {
     el.className='drive-status disconnected';
-    el.innerHTML='<svg fill="none" viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.5"><path d="M2 12h12M5 12L2 7h4l1-4 3 4h4l-3 5z"/></svg><span>Connect Google Drive in Settings to enable file uploads</span>';
+    el.innerHTML='<svg width="13" height="13" fill="none" viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.5" style="flex-shrink:0"><path d="M2 12h12M5 12L2 7h4l1-4 3 4h4l-3 5z"/></svg><span>Connect Google Drive in Settings to enable file uploads</span>';
   }
 }
 
