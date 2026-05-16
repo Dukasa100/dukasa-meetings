@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Dúkasa Dispensary — Managers Meeting</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,600&family=DM+Mono:wght@300;400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
@@ -883,65 +883,255 @@ function showToast(msg,cls=''){
 }
 
 function exportDocx(){
-  const docxLib = window.docx;
-  if(!docxLib){ showToast('Export library not loaded — try refreshing the page.','t-urgent'); return; }
-  showToast('Generating document…','t-brand');
-  setTimeout(_buildDocx, 50);
+  if(window.docx && window.docx.Document){
+    showToast('Generating document…','t-brand');
+    setTimeout(_buildDocx, 50);
+    return;
+  }
+  // Library not yet loaded — try loading it now
+  showToast('Loading export library…','t-brand');
+  const s = document.createElement('script');
+  s.src = 'https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js';
+  s.onload = () => {
+    if(window.docx && window.docx.Document){
+      showToast('Generating document…','t-brand');
+      setTimeout(_buildDocx, 100);
+    } else {
+      showToast('Export failed — try refreshing the page.','t-urgent');
+    }
+  };
+  s.onerror = () => showToast('Export failed — check your internet connection.','t-urgent');
+  document.head.appendChild(s);
 }
 
 function _buildDocx(){
-  const {Document,Packer,Paragraph,TextRun,Table,TableRow,TableCell,
-    AlignmentType,PageBreak,BorderStyle,WidthType,ShadingType,VerticalAlign}=window.docx;
-  const B='927150',TAN='EDE8E0',DARK='1A1A1A';
-  const nb={style:BorderStyle.NONE,size:0,color:'FFFFFF'};
-  const nbs={top:nb,bottom:nb,left:nb,right:nb,insideH:nb,insideV:nb};
-  const sep=(c='D4CFC5')=>({top:nb,bottom:{style:BorderStyle.SINGLE,size:3,color:c},left:nb,right:nb,insideH:nb,insideV:nb});
-  const W=9026,C1=800,C3=1600,C2=W-C1-C3;
-  const tr=(text,o={})=>new TextRun({text,font:o.font||'Georgia',size:o.size||22,bold:!!o.bold,color:o.color||DARK,italics:!!o.italic});
-  const ep=(s=120)=>new Paragraph({spacing:{before:0,after:s}});
-  const urgA=requests.filter(r=>r.urgent&&r.status==='approved');
-  const stdA=requests.filter(r=>!r.urgent&&!r.is_followup&&!r.deferred&&r.status==='approved');
-  const followA=requests.filter(r=>r.is_followup&&r.status==='approved');
-  function secHead(num,title,time){
-    return new Table({width:{size:W,type:WidthType.DXA},columnWidths:[C1,C2,C3],borders:sep(),rows:[new TableRow({children:[
-      new TableCell({borders:nbs,width:{size:C1,type:WidthType.DXA},shading:{fill:TAN,type:ShadingType.CLEAR},margins:{top:100,bottom:100,left:100,right:80},verticalAlign:VerticalAlign.CENTER,children:[new Paragraph({alignment:AlignmentType.CENTER,children:[tr(String(num).padStart(2,'0'),{font:'Courier New',size:20,color:B})]})]}),
-      new TableCell({borders:nbs,width:{size:C2,type:WidthType.DXA},shading:{fill:TAN,type:ShadingType.CLEAR},margins:{top:100,bottom:100,left:140,right:80},verticalAlign:VerticalAlign.CENTER,children:[new Paragraph({children:[tr(title,{bold:true})]})]}),
-      new TableCell({borders:nbs,width:{size:C3,type:WidthType.DXA},shading:{fill:TAN,type:ShadingType.CLEAR},margins:{top:100,bottom:100,left:80,right:120},verticalAlign:VerticalAlign.CENTER,children:[new Paragraph({alignment:AlignmentType.RIGHT,children:[tr(time,{font:'Courier New',size:18,color:B})]})]})]})]}); }
-  function agRow(text,owner,cat,desc,time_needed){
-    return new Table({width:{size:W,type:WidthType.DXA},columnWidths:[320,W-320],borders:sep('E8E4DC'),rows:[new TableRow({children:[
-      new TableCell({borders:nbs,width:{size:320,type:WidthType.DXA},margins:{top:70,bottom:70,left:100,right:60},verticalAlign:VerticalAlign.TOP,children:[new Paragraph({alignment:AlignmentType.CENTER,children:[tr('—',{font:'Courier New',size:18,color:B})]})]}),
-      new TableCell({borders:nbs,width:{size:W-320,type:WidthType.DXA},margins:{top:70,bottom:70,left:120,right:120},children:[
-        new Paragraph({children:[tr(text,{size:20})]}),
-        new Paragraph({spacing:{before:30,after:0},children:[tr(owner||'',{font:'Courier New',size:16,color:B,italic:true}),...(cat?[tr('  ·  '+cat,{font:'Courier New',size:16,color:'A09080'})]:[]),...(time_needed?[tr('  ·  '+time_needed,{font:'Courier New',size:16,color:'A09080'})]:[])]}),
-        ...(desc?[new Paragraph({spacing:{before:30},children:[tr(desc,{size:17,color:'6B6460',italic:true})]})]:[])
-      ]})]})]});}
-  function emptyItem(msg){return new Table({width:{size:W,type:WidthType.DXA},columnWidths:[W],borders:sep('E8E4DC'),rows:[new TableRow({children:[new TableCell({borders:nbs,width:{size:W,type:WidthType.DXA},margins:{top:80,bottom:80,left:120,right:120},children:[new Paragraph({children:[tr(msg,{font:'Courier New',size:17,color:'B0A898',italic:true})]})]})]})]}); }
-  const children=[];
-  children.push(
-    new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:3000,after:600},children:[tr('DÚKASA',{size:72,bold:true})]}),
-    new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:0,after:2000},children:[tr('DISPENSARY',{size:72,bold:true})]}),
-    new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:600,after:200},children:[tr('Managers Meeting Agenda',{size:34,color:B,bold:true})]}),
-    new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:0,after:0},children:[tr(friendlyDate(),{size:26,color:'6B6460',italic:true})]}),
-    new Paragraph({children:[new PageBreak()]})
-  );
-  children.push(new Paragraph({spacing:{before:0,after:240},border:{bottom:{style:BorderStyle.SINGLE,size:4,color:'D4CFC5'}},children:[tr('DÚKASA DISPENSARY',{font:'Courier New',size:17,color:B}),tr('  ·  Managers Meeting Agenda  ·  ',{font:'Courier New',size:17,color:'B0A898'}),tr(friendlyDate(),{font:'Courier New',size:17,color:'6B6460'})]}),ep(160));
-  for(const sec of TEMPLATE){
-    const items=sec.isUrgent?urgA:sec.isSubmitted?stdA:sec.isFollowup?followA:sec.items;
-    children.push(secHead(sec.num,sec.title,sec.time),ep(40));
-    if(!items.length) children.push(emptyItem(sec.isUrgent?'No urgent items':sec.isFollowup?'No follow-up items':sec.isSubmitted?'No approved items':'No items'));
-    else for(const i of items) children.push(agRow(i.text||i.title,i.owner||(i.name+(i.dept?` · ${i.dept}`:'')),sec.isUrgent||sec.isSubmitted||sec.isFollowup?i.cat:null,sec.isUrgent||sec.isSubmitted||sec.isFollowup?i.description:null,sec.isUrgent||sec.isSubmitted||sec.isFollowup?i.time_needed:null));
-    children.push(ep(220));
+  try {
+    const D = window.docx;
+    if(!D || !D.Document){ showToast('Export library unavailable — refresh and try again.','t-urgent'); return; }
+    const {Document,Packer,Paragraph,TextRun,Table,TableRow,TableCell,
+      AlignmentType,BorderStyle,WidthType,ShadingType,VerticalAlign,PageBreak,
+      Header,Footer,PageNumber,NumberFormat} = D;
+
+    // ── Design tokens ──────────────────────────────────────────────────────
+    const BRAND='927150', CREAM='EDE8E0', DARK='1A1A1A', MID='8C7B6A', LIGHT='B8A99A', VLIGHT='D4CFC5';
+    const W=9026; // content width in DXA (A4 with 2cm margins)
+
+    // ── Helpers ────────────────────────────────────────────────────────────
+    const nb={style:BorderStyle.NONE,size:0,color:'FFFFFF'};
+    const noBorders={top:nb,bottom:nb,left:nb,right:nb,insideH:nb,insideV:nb};
+    const hairline=(color=VLIGHT)=>({style:BorderStyle.SINGLE,size:2,color});
+    const bottomRule=(color=VLIGHT,size=6)=>({top:nb,bottom:{style:BorderStyle.SINGLE,size,color},left:nb,right:nb,insideH:nb,insideV:nb});
+
+    const run=(text,opts={})=>new TextRun({
+      text: String(text||''),
+      font: opts.font||'Georgia',
+      size: opts.size||22,
+      bold: !!opts.bold,
+      italics: !!opts.italic,
+      color: opts.color||DARK,
+      allCaps: !!opts.caps,
+    });
+
+    const gap=(after=160)=>new Paragraph({spacing:{before:0,after}});
+
+    // ── Cover page ─────────────────────────────────────────────────────────
+    const cover=[
+      gap(4000),
+      new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:0,after:120},
+        children:[run('DÚKASA',{size:80,bold:true,color:DARK})]}),
+      new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:0,after:2400},
+        children:[run('DISPENSARY',{size:80,bold:true,color:DARK})]}),
+      new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:0,after:0},
+        border:{bottom:{style:BorderStyle.SINGLE,size:4,color:BRAND},space:320},
+        children:[run('')]}),
+      gap(320),
+      new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:0,after:200},
+        children:[run('Managers Meeting — Agenda',{size:30,bold:true,color:BRAND})]}),
+      new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:0,after:0},
+        children:[run(friendlyDate(),{size:24,italic:true,color:MID})]}),
+      gap(200),
+      new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:0,after:0},
+        children:[run('9:00 – 11:00 AM  ·  All Managers',{size:18,color:LIGHT,font:'Courier New'})]}),
+      new Paragraph({children:[new PageBreak()]}),
+    ];
+
+    // ── Page header line ───────────────────────────────────────────────────
+    const pageHeader=[
+      new Paragraph({
+        spacing:{before:0,after:240},
+        border:{bottom:{style:BorderStyle.SINGLE,size:4,color:VLIGHT}},
+        children:[
+          run('DÚKASA DISPENSARY',{font:'Courier New',size:17,color:BRAND}),
+          run('   ·   ',{font:'Courier New',size:17,color:VLIGHT}),
+          run('Managers Meeting Agenda',{font:'Courier New',size:17,color:MID}),
+          run('   ·   ',{font:'Courier New',size:17,color:VLIGHT}),
+          run(friendlyDate(),{font:'Courier New',size:17,color:LIGHT}),
+        ]
+      }),
+      gap(200),
+    ];
+
+    // ── Section heading row ────────────────────────────────────────────────
+    function sectionHead(num,title,time){
+      const C1=640,C3=1400,C2=W-C1-C3;
+      return new Table({
+        width:{size:W,type:WidthType.DXA},
+        columnWidths:[C1,C2,C3],
+        borders:bottomRule(VLIGHT,4),
+        rows:[new TableRow({children:[
+          new TableCell({
+            borders:noBorders,width:{size:C1,type:WidthType.DXA},
+            shading:{fill:CREAM,type:ShadingType.CLEAR},
+            margins:{top:120,bottom:120,left:120,right:80},
+            verticalAlign:VerticalAlign.CENTER,
+            children:[new Paragraph({alignment:AlignmentType.CENTER,
+              children:[run(String(num).padStart(2,'0'),{font:'Courier New',size:20,bold:true,color:BRAND})]})]
+          }),
+          new TableCell({
+            borders:noBorders,width:{size:C2,type:WidthType.DXA},
+            shading:{fill:CREAM,type:ShadingType.CLEAR},
+            margins:{top:120,bottom:120,left:160,right:80},
+            verticalAlign:VerticalAlign.CENTER,
+            children:[new Paragraph({children:[run(title,{size:24,bold:true,color:DARK})]})]
+          }),
+          new TableCell({
+            borders:noBorders,width:{size:C3,type:WidthType.DXA},
+            shading:{fill:CREAM,type:ShadingType.CLEAR},
+            margins:{top:120,bottom:120,left:80,right:120},
+            verticalAlign:VerticalAlign.CENTER,
+            children:[new Paragraph({alignment:AlignmentType.RIGHT,
+              children:[run(time,{font:'Courier New',size:17,color:BRAND})]})]
+          }),
+        ]})]
+      });
+    }
+
+    // ── Agenda item row ────────────────────────────────────────────────────
+    function agendaItem(text,owner,cat,desc,timeNeeded,isUrgent,isFollowup){
+      const C1=280,C2=W-C1;
+      const metaParts=[];
+      if(owner) metaParts.push(run(owner,{font:'Courier New',size:16,color:BRAND,italic:true}));
+      if(cat) metaParts.push(run('   ·   '+cat,{font:'Courier New',size:15,color:MID}));
+      if(timeNeeded) metaParts.push(run('   ·   '+timeNeeded,{font:'Courier New',size:15,color:MID}));
+      if(isUrgent) metaParts.push(run('   ·   URGENT',{font:'Courier New',size:15,color:BRAND,bold:true,caps:true}));
+      if(isFollowup) metaParts.push(run('   ·   FOLLOW-UP',{font:'Courier New',size:15,color:'6b3fa0',italic:true}));
+
+      const bodyParas=[
+        new Paragraph({spacing:{before:0,after:metaParts.length?40:0},
+          children:[run(text,{size:21,color:DARK})]}),
+        ...(metaParts.length?[new Paragraph({spacing:{before:0,after:desc?50:0},children:metaParts})]:[]),
+        ...(desc?[new Paragraph({spacing:{before:0,after:0},children:[run(desc,{size:18,italic:true,color:'6B6460'})]})]:[]),
+      ];
+
+      return new Table({
+        width:{size:W,type:WidthType.DXA},
+        columnWidths:[C1,C2],
+        borders:bottomRule('ECEAE4',2),
+        rows:[new TableRow({children:[
+          new TableCell({
+            borders:noBorders,width:{size:C1,type:WidthType.DXA},
+            margins:{top:100,bottom:100,left:80,right:60},
+            verticalAlign:VerticalAlign.TOP,
+            children:[new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:60,after:0},
+              children:[run('—',{font:'Courier New',size:16,color:VLIGHT})]})]
+          }),
+          new TableCell({
+            borders:noBorders,width:{size:C2,type:WidthType.DXA},
+            margins:{top:100,bottom:100,left:100,right:80},
+            children:bodyParas
+          }),
+        ]})]
+      });
+    }
+
+    function emptyItem(msg){
+      return new Table({
+        width:{size:W,type:WidthType.DXA},columnWidths:[W],
+        borders:bottomRule('ECEAE4',2),
+        rows:[new TableRow({children:[new TableCell({
+          borders:noBorders,width:{size:W,type:WidthType.DXA},
+          margins:{top:100,bottom:100,left:120,right:120},
+          children:[new Paragraph({children:[run(msg,{font:'Courier New',size:17,italic:true,color:'C0B8B0'})]})]
+        })]})]
+      });
+    }
+
+    // ── Build sections ─────────────────────────────────────────────────────
+    const urgA=requests.filter(r=>r.urgent&&r.status==='approved');
+    const stdA=requests.filter(r=>!r.urgent&&!r.is_followup&&!r.deferred&&r.status==='approved');
+    const followA=requests.filter(r=>r.is_followup&&r.status==='approved');
+
+    const body=[...pageHeader];
+
+    for(const sec of TEMPLATE){
+      const isDynamic=sec.isUrgent||sec.isSubmitted||sec.isFollowup;
+      const rawItems=sec.isUrgent?urgA:sec.isSubmitted?stdA:sec.isFollowup?followA:sec.items;
+      // Apply deleted presets filter for static sections
+      const items=isDynamic?rawItems:rawItems.filter((_,idx)=>!deletedPresets.has(sec.num+'-'+idx));
+
+      body.push(sectionHead(sec.num,sec.title,sec.time), gap(60));
+
+      if(!items.length){
+        body.push(emptyItem(
+          sec.isUrgent?'No urgent items for this meeting':
+          sec.isFollowup?'No follow-up items from previous meeting':
+          sec.isSubmitted?'No submitted items approved':'No items'
+        ));
+      } else {
+        for(const item of items){
+          const owner=item.owner||(item.name?item.name+(item.dept?' · '+item.dept:''):'');
+          body.push(agendaItem(
+            item.text||item.title, owner,
+            isDynamic?item.cat:null,
+            isDynamic?item.description:null,
+            isDynamic?item.time_needed:null,
+            !!item.urgent, !!item.is_followup
+          ));
+        }
+      }
+      body.push(gap(280));
+    }
+
+    // Footer rule
+    body.push(new Paragraph({
+      alignment:AlignmentType.CENTER,
+      spacing:{before:400,after:0},
+      border:{top:{style:BorderStyle.SINGLE,size:3,color:VLIGHT}},
+      children:[run('Dúkasa Dispensary   ·   Confidential   ·   '+friendlyDate(),
+        {font:'Courier New',size:15,italic:true,color:LIGHT})]
+    }));
+
+    // ── Document ───────────────────────────────────────────────────────────
+    const doc=new Document({
+      styles:{default:{document:{run:{font:'Georgia',size:22,color:DARK}}}},
+      sections:[
+        // Cover page section (no header/footer)
+        {
+          properties:{page:{size:{width:11906,height:16838},margin:{top:1440,right:1440,bottom:1440,left:1440}}},
+          children:cover
+        },
+        // Agenda section
+        {
+          properties:{page:{size:{width:11906,height:16838},margin:{top:1134,right:1134,bottom:1134,left:1134}}},
+          children:body
+        }
+      ]
+    });
+
+    Packer.toBlob(doc).then(blob=>{
+      const a=document.createElement('a');
+      a.href=URL.createObjectURL(blob);
+      a.download=(meetingDate?'Dukasa-Agenda-'+meetingDate:'Dukasa-Agenda')+'.docx';
+      a.click();
+      showToast('Agenda exported — upload to Google Drive → open with Google Docs.','t-brand');
+    }).catch(e=>{ showToast('Export error: '+e.message,'t-urgent'); console.error(e); });
+
+  } catch(e){
+    showToast('Export failed: '+e.message,'t-urgent');
+    console.error('_buildDocx error:',e);
   }
-  children.push(new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:300,after:0},border:{top:{style:BorderStyle.SINGLE,size:3,color:'D4CFC5'}},children:[tr('Dúkasa Dispensary — Confidential',{font:'Courier New',size:16,color:'B0A898',italic:true})]}));
-  const doc=new Document({styles:{default:{document:{run:{font:'Georgia',size:22}}}},sections:[{properties:{page:{size:{width:11906,height:16838},margin:{top:1134,right:1134,bottom:1134,left:1134}}},children}]});
-  Packer.toBlob(doc).then(blob=>{
-    const a=document.createElement('a');
-    a.href=URL.createObjectURL(blob);
-    a.download=(meetingDate?`Dukasa-Agenda-${meetingDate}`:'Dukasa-Agenda')+'.docx';
-    a.click();
-    showToast('Agenda exported — upload to Google Drive to open as Doc.','t-brand');
-  });
 }
+
 
 window.addEventListener('load',initSupabase);
 </script>
