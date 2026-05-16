@@ -135,7 +135,12 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 @keyframes rowFlash{0%{background:#fef9e7}100%{background:transparent}}
 .row-num{display:flex;align-items:flex-start;justify-content:center;padding-top:14px;font-family:var(--mono);font-size:10px;color:var(--paper-4);border-right:1px solid var(--paper-2)}
 .row-body{padding:11px 16px}
-.row-title{font-size:14px;color:var(--ink);font-weight:500;line-height:1.4}
+.row-title-wrap{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.row-title{font-size:14px;color:var(--ink);font-weight:500;line-height:1.4;flex:1}
+.row-delete-btn{opacity:0;flex-shrink:0;border:none;background:transparent;cursor:pointer;color:var(--ink-5);padding:2px 4px;border-radius:var(--radius);transition:all .15s;display:flex;align-items:center}
+.row-delete-btn svg{width:13px;height:13px}
+.row-delete-btn:hover{color:var(--urgent-r);background:var(--urgent-l)}
+.agenda-row:hover .row-delete-btn{opacity:1}
 .row-meta{font-family:var(--mono);font-size:11px;color:var(--ink-5);margin-top:3px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .chip{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:10px;font-size:10px;font-family:var(--mono);border:1px solid}
 .chip-base{background:var(--paper);border-color:var(--paper-3);color:var(--ink-4)}
@@ -317,10 +322,6 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 
       <!-- Submit panel -->
       <div class="panel" id="panel-submit">
-        <div class="notice">
-          <svg fill="none" viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 7v4M8 5v.5"/></svg>
-          Your submission is live — all managers see it instantly. Urgent items appear on the agenda immediately.
-        </div>
         <div class="form-card">
           <div class="form-hd">
             <div class="form-hd-icon">
@@ -799,10 +800,16 @@ function renderAgenda(){
       : items.map((item,idx)=>{
           const isReq = sec.isUrgent||sec.isSubmitted;
           const owner = item.owner || ((item.name||'')+(item.dept?` · ${item.dept}`:''));
+          const deleteBtn = isReq && item.id
+            ? `<button class="row-delete-btn" onclick="deleteReq('${item.id}')" title="Remove from agenda">${IC.trash}</button>`
+            : '';
           return `<div class="agenda-row${isReq?' new-flash':''}">
             <div class="row-num">${idx+1}</div>
             <div class="row-body">
-              <div class="row-title">${esc(item.text||item.title)}</div>
+              <div class="row-title-wrap">
+                <span class="row-title">${esc(item.text||item.title)}</span>
+                ${deleteBtn}
+              </div>
               <div class="row-meta">
                 <span>${IC.user} ${esc(owner)}</span>
                 ${isReq&&item.cat?`<span class="chip chip-base">${esc(item.cat)}</span>`:''}
