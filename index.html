@@ -295,6 +295,60 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 .db-edit-actions{display:flex;gap:6px;justify-content:flex-end;margin-top:2px}
 .drive-folder-link{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;color:var(--ok-g);text-decoration:none;padding:5px 12px;border-radius:var(--radius);background:var(--ok-l);border:1px solid var(--ok-m)}
 
+.archive-card{
+  background:#fff;
+  border:1px solid var(--paper-3);
+  border-radius:var(--radius-lg);
+  box-shadow:var(--shadow);
+  margin-bottom:10px;
+  overflow:hidden;
+}
+.archive-head{
+  padding:14px 18px;
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  align-items:center;
+  border-bottom:1px solid var(--paper-2);
+}
+.archive-title{
+  font-family:var(--serif);
+  font-size:20px;
+  font-weight:600;
+}
+.archive-meta{
+  font-family:var(--mono);
+  font-size:10px;
+  color:var(--ink-5);
+  margin-top:2px;
+}
+.archive-body{
+  padding:14px 18px;
+}
+.archive-section{
+  margin-bottom:12px;
+  padding-bottom:10px;
+  border-bottom:1px solid var(--paper-2);
+}
+.archive-section:last-child{border-bottom:none}
+.archive-section h4{
+  font-size:14px;
+  margin-bottom:6px;
+}
+.archive-list{
+  display:flex;
+  flex-direction:column;
+  gap:5px;
+}
+.current-files-panel{
+  background:#fff;
+  border:1px solid var(--paper-3);
+  border-radius:var(--radius-lg);
+  box-shadow:var(--shadow);
+  padding:14px 18px;
+  margin-bottom:16px;
+}
+  
 @media print{.sidebar,.topbar-actions,.edit-mode-toggle,.sec-actions,.row-actions,.add-row-btn,.add-section-btn,.bsm-delete,.rc-ft,.loading-overlay{display:none!important}.main{margin-left:0}.topbar{position:static}}
 </style>
 </head>
@@ -333,6 +387,12 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
       <button class="nav-btn" onclick="showPanel('board')" id="nav-board">
         <svg fill="none" viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.5"><path d="M2 2h5v5H2zM9 2h5v5H9zM2 9h5v5H2zM9 9h5v5H9z"/></svg>Request board
         <span class="nav-badge" id="badge-pending" style="display:none">0</span>
+      <button class="nav-btn" onclick="showPanel('past')" id="nav-past">
+  <svg fill="none" viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.5">
+    <path d="M3 2h10v12H3zM5 5h6M5 8h6M5 11h4"/>
+  </svg>
+  Past meetings
+</button>
       </button>
       <button class="nav-btn" onclick="showPanel('settings')" id="nav-settings">
         <svg fill="none" viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="2.5"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.2 3.2l1.4 1.4M11.4 11.4l1.4 1.4M3.2 12.8l1.4-1.4M11.4 4.6l1.4-1.4"/></svg>Settings
@@ -360,6 +420,12 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
           <svg fill="none" viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.5"><path d="M2 12h12M5 12L2 7h4l1-4 3 4h4l-3 5z"/></svg>
           Save to Drive
         </button>
+        <button class="btn btn-brand" onclick="finaliseMeeting()" id="finalise-btn">
+  <svg fill="none" viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.5">
+    <path d="M3 8l3 3 7-7"/>
+  </svg>
+  Finalise meeting
+</button>
         <button class="btn btn-ghost" onclick="exportPrint()">
           <svg fill="none" viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.5"><path d="M4 5V2h8v3M3 5h10a1 1 0 011 1v5H2V6a1 1 0 011-1zM4 11v3h8v-3"/></svg>
           Export PDF
@@ -457,6 +523,9 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 
       <!-- Board -->
       <div class="panel" id="panel-board"><div id="board-content"></div></div>
+      <div class="panel" id="panel-past">
+  <div id="past-meetings-content"></div>
+</div>
 
       <!-- Settings -->
       <div class="panel" id="panel-settings">
@@ -729,11 +798,25 @@ function friendlyDate(){
 function showPanel(name){
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
-  document.getElementById('panel-'+name).classList.add('active');
-  const nb=document.getElementById('nav-'+name);if(nb)nb.classList.add('active');
-  const titles={agenda:'Agenda',submit:'Submit item',board:'Request board',settings:'Settings'};
+
+  const panel=document.getElementById('panel-'+name);
+  if(panel) panel.classList.add('active');
+
+  const nb=document.getElementById('nav-'+name);
+  if(nb) nb.classList.add('active');
+
+  const titles={
+    agenda:'Agenda',
+    submit:'Submit item',
+    board:'Request board',
+    past:'Past meetings',
+    settings:'Settings'
+  };
+
   document.getElementById('topbar-title').textContent=titles[name]||name;
   document.getElementById('print-btn').style.display=name==='agenda'?'':'none';
+
+  if(name==='past') renderPastMeetings();
 }
 
 // ── Edit mode — always on, no toggle needed ───────────────────────────────
@@ -931,6 +1014,47 @@ function onItemDrop(e,toSid,toIid){
   saveSections();renderAgenda();dragItem=null;dragItemSec=null;
 }
 
+function getAllCurrentMeetingFiles(){
+  const files=[];
+
+  (requests || []).forEach(r=>{
+    const attached = Array.isArray(r.drive_files) ? r.drive_files : [];
+    attached.forEach(f=>{
+      files.push({
+        ...f,
+        request_id:r.id,
+        request_title:r.title || 'Untitled agenda item',
+        uploaded_by:r.name || ''
+      });
+    });
+  });
+
+  return files;
+}
+
+function renderCurrentMeetingFiles(){
+  const files=getAllCurrentMeetingFiles();
+  if(!files.length) return '';
+
+  return `
+    <div class="current-files-panel">
+      <div class="board-hd" style="margin-top:0">Current meeting attachments</div>
+      <div class="archive-list">
+        ${files.map(f=>`
+          <div class="file-chip uploaded">
+            <svg fill="none" viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.5">
+              <path d="M9 2H4a1 1 0 00-1 1v10a1 1 0 001 1h8a1 1 0 001-1V6M9 2l4 4M9 2v4h4"/>
+            </svg>
+            <span class="fc-name">${esc(f.name || f.filename || 'Attachment')}</span>
+            <span class="fc-size">${esc(f.request_title || '')}</span>
+            ${f.webViewLink || f.url ? `<a class="attach-link" href="${esc(f.webViewLink || f.url)}" target="_blank">Open</a>` : ''}
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
 // ── Render agenda ─────────────────────────────────────────────────────────
 function renderAgenda(){
   const urgA=requests.filter(r=>r.urgent&&r.status==='approved');
@@ -962,7 +1086,7 @@ function renderAgenda(){
   const panel=document.getElementById('panel-agenda');
   const em=true; // Always editable
 
-  document.getElementById('agenda-sections').innerHTML=liveSections.map((sec,si)=>{
+  document.getElementById('agenda-sections').innerHTML = renderCurrentMeetingFiles() + html;
     const isDynamic=sec.type!=='static';
     let dynamicItems=[];
     if(sec.type==='urgent')dynamicItems=urgA;
@@ -1216,6 +1340,156 @@ async function submitRequest(){
     );
     clearForm();setTimeout(()=>showPanel('agenda'),1000);
   }
+}
+
+async function finaliseMeeting(){
+  if(!db){
+    showToast('Connect Supabase first.', 't-urgent');
+    return;
+  }
+
+  if(!meetingDate){
+    const ok = confirm('No meeting date is set. Finalise anyway?');
+    if(!ok) return;
+  }
+
+  const ok = confirm('Finalise this meeting? This will save the agenda, requests and attachments to Past meetings.');
+  if(!ok) return;
+
+  try{
+    setSyncStatus('syncing');
+
+    let folderId = '';
+    let folderUrl = '';
+
+    try{
+      if(typeof ensureMeetingFolder === 'function'){
+        const folder = await ensureMeetingFolder();
+        folderId = folder?.id || '';
+        folderUrl = folder?.webViewLink || (folderId ? `https://drive.google.com/drive/folders/${folderId}` : '');
+      }
+    }catch(e){
+      console.warn('Drive folder not available during finalise:', e);
+    }
+
+    const files = getAllCurrentMeetingFiles();
+
+    const archive = {
+      meeting_date: meetingDate || null,
+      title: `Managers Meeting — ${friendlyDate()}`,
+      agenda_snapshot: liveSections || [],
+      request_snapshot: requests || [],
+      files,
+      drive_folder_id: folderId,
+      drive_folder_url: folderUrl
+    };
+
+    const { error } = await db.from('meeting_archives').insert(archive);
+    if(error) throw error;
+
+    showToast('Meeting finalised and saved to Past meetings.', 't-ok');
+
+    await renderPastMeetings();
+
+  }catch(err){
+    console.error(err);
+    showToast('Could not finalise meeting: ' + err.message, 't-urgent');
+  }finally{
+    setSyncStatus('live');
+  }
+}
+
+async function renderPastMeetings(){
+  const el=document.getElementById('past-meetings-content');
+  if(!el) return;
+
+  if(!db){
+    el.innerHTML='<div class="empty-board">Connect Supabase to view past meetings.</div>';
+    return;
+  }
+
+  el.innerHTML='<div class="empty-board">Loading past meetings…</div>';
+
+  const { data, error } = await db
+    .from('meeting_archives')
+    .select('*')
+    .order('finalised_at', { ascending:false });
+
+  if(error){
+    el.innerHTML=`<div class="empty-board">Could not load past meetings: ${esc(error.message)}</div>`;
+    return;
+  }
+
+  if(!data || !data.length){
+    el.innerHTML='<div class="empty-board">No finalised meetings yet.</div>';
+    return;
+  }
+
+  el.innerHTML = data.map(m=>renderArchiveCard(m)).join('');
+}
+
+function renderArchiveCard(m){
+  const agenda = Array.isArray(m.agenda_snapshot) ? m.agenda_snapshot : [];
+  const files = Array.isArray(m.files) ? m.files : [];
+  const finalised = m.finalised_at
+    ? new Date(m.finalised_at).toLocaleString('en-AU')
+    : '—';
+
+  return `
+    <div class="archive-card">
+      <div class="archive-head">
+        <div>
+          <div class="archive-title">${esc(m.title || 'Managers Meeting')}</div>
+          <div class="archive-meta">Finalised ${esc(finalised)}</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
+          ${m.drive_folder_url ? `<a class="btn btn-ghost" href="${esc(m.drive_folder_url)}" target="_blank">Open Drive folder</a>` : ''}
+        </div>
+      </div>
+
+      <div class="archive-body">
+        <div class="board-hd" style="margin-top:0">Agenda snapshot</div>
+
+        ${agenda.map((sec,idx)=>`
+          <div class="archive-section">
+            <h4>${idx+1}. ${esc(sec.title || 'Untitled section')} 
+              <span class="chip chip-base">${esc(sec.time || '')}</span>
+            </h4>
+            ${
+              sec.items && sec.items.length
+                ? `<div class="archive-list">
+                    ${sec.items.map(item=>`
+                      <div class="file-chip">
+                        <span class="fc-name">${esc(item.text || item.title || 'Untitled item')}</span>
+                        ${item.owner ? `<span class="fc-size">${esc(item.owner)}</span>` : ''}
+                      </div>
+                    `).join('')}
+                   </div>`
+                : `<div class="archive-meta">No items recorded.</div>`
+            }
+          </div>
+        `).join('')}
+
+        <div class="board-hd">Attachments</div>
+        ${
+          files.length
+            ? `<div class="archive-list">
+                ${files.map(f=>`
+                  <div class="file-chip uploaded">
+                    <svg fill="none" viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.5">
+                      <path d="M9 2H4a1 1 0 00-1 1v10a1 1 0 001 1h8a1 1 0 001-1V6M9 2l4 4M9 2v4h4"/>
+                    </svg>
+                    <span class="fc-name">${esc(f.name || f.filename || 'Attachment')}</span>
+                    <span class="fc-size">${esc(f.request_title || '')}</span>
+                    ${f.webViewLink || f.url ? `<a class="attach-link" href="${esc(f.webViewLink || f.url)}" target="_blank">Open</a>` : ''}
+                  </div>
+                `).join('')}
+              </div>`
+            : `<div class="archive-meta">No attachments saved with this meeting.</div>`
+        }
+      </div>
+    </div>
+  `;
 }
 
 
