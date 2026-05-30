@@ -1065,6 +1065,7 @@ function renderAgenda(){
   document.getElementById('stat-total').textContent=requests.filter(r=>!r.deferred).length;
   document.getElementById('stat-urgent').textContent=requests.filter(r=>r.urgent).length;
   document.getElementById('stat-approved').textContent=requests.filter(r=>r.status==='approved').length;
+
   const mins=liveSections.reduce((a,s)=>{
     const t=parseInt(s.time)||0;
     if(s.type==='urgent'&&!urgA.length)return a;
@@ -1072,26 +1073,36 @@ function renderAgenda(){
     if(s.type==='followup'&&!followA.length)return a;
     return a+t;
   },0);
+
   const h=Math.floor(mins/60),m=mins%60;
   document.getElementById('stat-time').textContent=h>0?h+'h '+m+'m':m+'m';
 
-  // Banners
   const ub=document.getElementById('banner-urgent');
-  if(urgA.length){ub.className='banner banner-urgent show';ub.innerHTML=`<div class="banner-hd">${IC.alert} ${urgA.length} urgent item${urgA.length>1?'s':''} on agenda</div><div>${urgA.map(r=>`<span class="banner-pill">${IC.alert} ${esc(r.title)}</span>`).join('')}</div>`;}
-  else{ub.className='banner banner-urgent';ub.innerHTML='';}
+  if(urgA.length){
+    ub.className='banner banner-urgent show';
+    ub.innerHTML=`<div class="banner-hd">${IC.alert} ${urgA.length} urgent item${urgA.length>1?'s':''} on agenda</div><div>${urgA.map(r=>`<span class="banner-pill">${IC.alert} ${esc(r.title)}</span>`).join('')}</div>`;
+  }else{
+    ub.className='banner banner-urgent';
+    ub.innerHTML='';
+  }
+
   const db2=document.getElementById('banner-defer');
-  if(deferA.length){db2.className='banner banner-defer show';db2.innerHTML=`<div class="banner-hd">${IC.defer} ${deferA.length} item${deferA.length>1?'s':''} saved for next-next meeting</div><div>${deferA.map(r=>`<span class="banner-pill">${esc(r.title)}</span>`).join('')}</div>`;}
-  else{db2.className='banner banner-defer';db2.innerHTML='';}
+  if(deferA.length){
+    db2.className='banner banner-defer show';
+    db2.innerHTML=`<div class="banner-hd">${IC.defer} ${deferA.length} item${deferA.length>1?'s':''} saved for next-next meeting</div><div>${deferA.map(r=>`<span class="banner-pill">${esc(r.title)}</span>`).join('')}</div>`;
+  }else{
+    db2.className='banner banner-defer';
+    db2.innerHTML='';
+  }
 
-  const panel=document.getElementById('panel-agenda');
-  const em=true; // Always editable
-
-  document.getElementById('agenda-sections').innerHTML = renderCurrentMeetingFiles() + html;
+  const html = liveSections.map((sec,si)=>{
     const isDynamic=sec.type!=='static';
     let dynamicItems=[];
-    if(sec.type==='urgent')dynamicItems=urgA;
-    else if(sec.type==='submitted')dynamicItems=stdA;
-    else if(sec.type==='followup')dynamicItems=followA;
+
+    if(sec.type==='urgent') dynamicItems=urgA;
+    else if(sec.type==='submitted') dynamicItems=stdA;
+    else if(sec.type==='followup') dynamicItems=followA;
+
     const items=isDynamic?dynamicItems:sec.items;
 
     const tag=sec.type==='urgent'?`<span class="sec-tag tag-urgent">${IC.alert} Urgent</span>`:
@@ -1102,10 +1113,8 @@ function renderAgenda(){
       ?`<div class="empty-row">${sec.type==='urgent'?'No urgent items':sec.type==='followup'?'No follow-up items':sec.type==='submitted'?'No approved items yet':'No items'}</div>`
       :items.map(item=>{
           const owner=item.owner||((item.name||'')+(item.dept?` · ${item.dept}`:''));
-          const reqId=item.id&&item.id.startsWith('x')?null:item.id;// DB items have uuid
-          const presetId=item.id&&!item.id.startsWith('x')&&isDynamic?item.id:null;
-          // For static/custom sections, item.id is always our local id
-          const isDBItem=!!(item.created_at);// DB requests have created_at
+          const isDBItem=!!(item.created_at);
+
           return `<div class="agenda-row" id="row-${sec.id}-${item.id}"
             ondragover="onItemDragOver(event,'${sec.id}','${item.id}')"
             ondrop="onItemDrop(event,'${sec.id}','${item.id}')">
@@ -1128,6 +1137,7 @@ function renderAgenda(){
               <button class="icon-btn danger" onclick="${isDBItem?`deleteReq('${item.id}')`:`deleteItem('${sec.id}','${item.id}')`}" title="Remove">${IC.trash}</button>
             </div>
           </div>
+
           ${!isDynamic?`<div class="row-edit-form" id="item-edit-${sec.id}-${item.id}">
             <div><div class="field-label">Item text</div><input id="item-text-${sec.id}-${item.id}" value="${esc(item.text||item.title||'')}"></div>
             <div class="row-edit-grid">
@@ -1139,6 +1149,7 @@ function renderAgenda(){
               <button class="btn-sm bsm-approve" onclick="saveItemEdit('${sec.id}','${item.id}')">${IC.check} Save</button>
             </div>
           </div>`:''}
+
           ${isDBItem?`<div class="db-edit-form" id="db-edit-${item.id}">
             <div><div class="field-label">Title</div><input id="dbe-title-${item.id}" value="${esc(item.title||'')}"></div>
             <div class="db-edit-grid">
@@ -1176,12 +1187,13 @@ function renderAgenda(){
         <div class="sec-title-area">
           <span class="sec-name">${esc(sec.title)}</span>${tag}
         </div>
-        <div class="sec-time-badge">${IC.clock} ${sec.time}</div>
+        <div class="sec-time-badge">${IC.clock} ${esc(sec.time)}</div>
         <div class="sec-actions">
           <button class="icon-btn" onclick="openSecEdit('${sec.id}')" title="Edit section">${IC.edit}</button>
           <button class="icon-btn danger" onclick="deleteSection('${sec.id}')" title="Remove section">${IC.trash}</button>
         </div>
       </div>
+
       <div class="sec-edit-row" id="sec-edit-${sec.id}">
         <div style="flex:2;min-width:160px">
           <div class="field-label">Section title</div>
@@ -1196,12 +1208,16 @@ function renderAgenda(){
           <button class="btn-sm bsm-approve" onclick="saveSecEdit('${sec.id}')">${IC.check} Save</button>
         </div>
       </div>
+
       <div>${rows}</div>
+
       ${!isDynamic?`<button class="add-row-btn" onclick="addItem('${sec.id}')">+ Add item to this section</button>`:''}
     </div>`;
   }).join('');
 
-  // Re-apply edit mode class to newly rendered elements
+  document.getElementById('agenda-sections').innerHTML =
+    renderCurrentMeetingFiles() + html;
+
   document.getElementById('agenda-sections').classList.add('edit-on');
   document.getElementById('panel-agenda').classList.add('edit-on');
 }
